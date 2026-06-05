@@ -5,85 +5,169 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PC Widget · Recibir del Móvil</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0f0f13;
-    --card: #1a1a22;
-    --border: #2a2a36;
-    --accent: #6c63ff;
-    --accent2: #a78bfa;
-    --text: #f0f0f5;
-    --muted: #888899;
-    --success: #22c55e;
+    --bg: #0a0a0a;
+    --card: #121216;
+    --border: #242432;
+    --bs-border-color: var(--border);
+    --bs-tertiary-bg: #161622;
+    --accent: #7c7fa8;
+    --accent2: #9b9ebf;
+    --progress: #c4956a;
+    --success: #6a9e82;
     --danger: #ef4444;
-    --new: rgba(108,99,255,0.08);
+    --text: #ededf5;
+    --muted: #808092;
+    --new: rgba(124, 127, 168, 0.06);
   }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); width: 380px; min-height: 100vh; overflow-x: hidden; }
 
-  .header { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); z-index: 10; }
+  .header { padding: 1.25rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); z-index: 10; gap: 0.5rem; }
   .header-left { display: flex; align-items: center; gap: 8px; }
-  .header-left h1 { font-size: 15px; font-weight: 600; }
-  .header-left span { font-size: 11px; color: var(--muted); }
+  .header-left h1 { font-size: 14px; font-weight: 700; }
+  .header-left span { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.05em; }
   .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); display: inline-block; animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-  .refresh-btn { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .refresh-btn { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 5px 12px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s; }
   .refresh-btn:hover { border-color: var(--accent); color: var(--accent2); }
 
-  .tabs { display: flex; gap: 3px; padding: 10px 12px 0; }
-  .tab { padding: 7px 14px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border: 1px solid transparent; border-bottom: none; }
-  .tab.active { color: var(--text); border-color: var(--border); background: var(--card); }
+  .tabs { display: flex; gap: 0.75rem; padding: 0.5rem 1rem 0; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 6px 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
 
-  .panel { display: none; padding: 14px; }
+  .panel { display: none; padding: 1.25rem 1rem; }
   .panel.active { display: block; }
 
   /* MENSAJES RECIBIDOS */
-  .msg-list { display: flex; flex-direction: column; gap: 8px; }
-  .msg { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: default; transition: border-color 0.15s; }
+  .msg-list { display: flex; flex-direction: column; gap: 12px; }
+  .msg {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    cursor: default;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.15s;
+  }
+  .msg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--progress);
+  }
   .msg.new { border-color: var(--accent); background: var(--new); }
+  .msg:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--accent);
+  }
   .msg-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
-  .msg-icon { width: 32px; height: 32px; border-radius: 8px; background: rgba(108,99,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .msg-icon { width: 32px; height: 32px; border-radius: 8px; background: rgba(124, 127, 168, 0.1); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
   .msg-meta { flex: 1; min-width: 0; }
-  .msg-source { font-size: 11px; color: var(--accent2); font-weight: 500; }
-  .msg-time { font-size: 10px; color: var(--muted); }
+  .msg-source { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent2); font-weight: 700; letter-spacing: 0.05em; }
+  .msg-time { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.05em; }
   .msg-text { font-size: 14px; line-height: 1.6; word-break: break-word; color: var(--text); margin-bottom: 6px; }
   .msg-img { width: 100%; border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
   .msg-img:hover { opacity: 0.9; }
-  .msg-file { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg); border-radius: 8px; margin-bottom: 6px; text-decoration: none; }
+  .msg-file { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg); border-radius: 8px; margin-bottom: 6px; text-decoration: none; border: 1px solid var(--border); }
   .msg-file span { font-size: 13px; color: var(--accent2); }
-  .msg-file small { font-size: 11px; color: var(--muted); display: block; }
+  .msg-file small { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); display: block; }
   .msg-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-  .action-btn { background: var(--border); border: none; color: var(--text); border-radius: 6px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-  .action-btn:hover { background: var(--accent); }
-  .action-btn.danger { background: rgba(239,68,68,0.15); color: var(--danger); }
-  .action-btn.danger:hover { background: var(--danger); color: white; }
+  .action-btn { background: var(--bs-tertiary-bg); border: 1px solid var(--border); color: var(--text); border-radius: 20px; padding: 4px 10px; font-size: 10px; cursor: pointer; font-family: 'DM Mono', monospace; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 700; transition: all 0.2s; }
+  .action-btn:hover { background: var(--accent); border-color: var(--accent); color: white; }
+  .action-btn.danger { background: rgba(239,68,68,0.08); color: var(--danger); border-color: rgba(239,68,68,0.2); }
+  .action-btn.danger:hover { background: var(--danger); color: white; border-color: var(--danger); }
 
   /* ENVIAR AL MÓVIL */
-  label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 5px; letter-spacing: 0.04em; text-transform: uppercase; }
-  textarea { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 12px; resize: none; height: 90px; margin-bottom: 12px; outline: none; transition: border-color 0.2s; }
+  label {
+    font-size: 10px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    font-weight: 700;
+  }
+  textarea {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 10px 12px;
+    resize: none;
+    height: 90px;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
   textarea:focus { border-color: var(--accent); }
   textarea::placeholder { color: var(--muted); }
 
-  .dropzone { border: 2px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; color: var(--muted); font-size: 13px; cursor: pointer; transition: all 0.2s; margin-bottom: 12px; }
+  .dropzone { border: 1.5px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; color: var(--muted); font-size: 13px; cursor: pointer; transition: all 0.2s; margin-bottom: 12px; background: rgba(255,255,255,0.01); }
   .dropzone:hover, .dropzone.dragover { border-color: var(--accent); color: var(--accent2); }
   input[type="file"] { display: none; }
 
-  .send-preview { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .send-preview {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .send-preview::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--progress);
+  }
+  .send-preview:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
   .send-preview-name { flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .send-preview-size { font-size: 11px; color: var(--muted); }
+  .send-preview-size { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
   .remove-file-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; }
 
-  .btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
-  .btn:hover { background: #5a52e0; }
+  .btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+  .btn:hover { background: #6b6e94; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .send-status { margin-top: 10px; font-size: 13px; text-align: center; min-height: 20px; }
   .send-status.ok { color: var(--success); }
   .send-status.err { color: var(--danger); }
 
   .empty { text-align: center; color: var(--muted); font-size: 14px; padding: 40px 16px; }
-  .badge { background: var(--accent); color: white; border-radius: 10px; font-size: 10px; font-weight: 600; padding: 1px 6px; margin-left: 5px; display: inline-block; vertical-align: middle; }
-  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+  .badge { background: var(--accent); color: white; border-radius: 20px; font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 700; padding: 2px 6px; margin-left: 5px; display: inline-block; vertical-align: middle; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 10px 20px; border-radius: 20px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.05em; }
   .toast.show { opacity: 1; }
 
   .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
@@ -96,7 +180,7 @@
 </head>
 <body>
 
-<div class="header">
+<div class="header pywebview-drag-region">
   <div class="header-left">
     <span class="dot"></span>
     <div>
