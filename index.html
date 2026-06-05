@@ -577,7 +577,14 @@ async function loadHistory() {
   el.innerHTML = '<div class="loader">Cargando...</div>';
   const { data, error } = await db.from('messages').select('*').eq('source','mobile').order('created_at',{ascending:false}).limit(20);
   if(error || !data?.length) { el.innerHTML = '<div class="empty">No has enviado nada todavía</div>'; return; }
-  el.innerHTML = data.map(m => `
+  
+  const deleteBtnHtml = `
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+      <button class="hitem-action" style="background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2);" onclick="deleteAllMessages()">🗑️ Borrar todo</button>
+    </div>
+  `;
+  
+  el.innerHTML = deleteBtnHtml + data.map(m => `
     <div class="hitem">
       <div class="hitem-icon" style="font-size:18px">${m.file_name ? getFileEmoji(m.file_type||'',m.file_name) : '💬'}</div>
       <div class="hitem-info">
@@ -599,7 +606,14 @@ async function loadReceived() {
   el.innerHTML = '<div class="loader">Cargando mensajes del PC...</div>';
   const { data, error } = await db.from('messages').select('*').eq('source','pc').order('created_at',{ascending:false}).limit(20);
   if(error || !data?.length) { el.innerHTML = '<div class="empty">No hay mensajes del PC todavía</div>'; return; }
-  el.innerHTML = data.map(m => `
+  
+  const deleteBtnHtml = `
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+      <button class="recv-copy" style="background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); float: none;" onclick="deleteAllMessages()">🗑️ Borrar todo</button>
+    </div>
+  `;
+  
+  el.innerHTML = deleteBtnHtml + data.map(m => `
     <div class="recv-item">
       <button class="recv-copy" onclick="copyText('${escapeAttr(m.text||m.image_url||'')}')">Copiar</button>
       ${m.text ? `<div class="recv-text">${escapeHtml(m.text)}</div>` : ''}
@@ -608,6 +622,20 @@ async function loadReceived() {
       <div class="recv-meta">${timeAgo(m.created_at)}</div>
     </div>
   `).join('');
+}
+
+async function deleteAllMessages() {
+  if (!db) return;
+  if (!confirm("¿Estás seguro de que deseas eliminar todo el historial de mensajes de la base de datos?")) return;
+  try {
+    const { error } = await db.from('messages').delete().neq('id', 0);
+    if (error) throw error;
+    showToast("🗑️ Todo eliminado");
+    if (document.getElementById('tab-recibidos').classList.contains('active')) loadReceived();
+    if (document.getElementById('tab-historial').classList.contains('active')) loadHistory();
+  } catch (err) {
+    showToast("❌ Error al eliminar: " + err.message);
+  }
 }
 
 function copyText(text) {

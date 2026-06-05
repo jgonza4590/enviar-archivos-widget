@@ -382,7 +382,13 @@ async function loadMessages() {
   badge.style.display = newCount ? 'inline-block' : 'none';
   badge.textContent = newCount;
 
-  el.innerHTML = data.map(m => `
+  const deleteBtnHtml = `
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 12px; padding: 0 4px;">
+      <button class="action-btn danger" onclick="deleteAllMessages()">🗑️ Borrar todo</button>
+    </div>
+  `;
+
+  el.innerHTML = deleteBtnHtml + data.map(m => `
     <div class="msg ${!seenIds.has(m.id)?'new':''}">
       <div class="msg-top">
         <div class="msg-icon">${m.file_name ? getEmoji(m.file_type||'',m.file_name) : '💬'}</div>
@@ -412,6 +418,19 @@ async function deleteMsg(id, btn) {
   btn.closest('.msg').style.opacity = '0.4';
   await db.from('messages').delete().eq('id', id);
   await loadMessages();
+}
+
+async function deleteAllMessages() {
+  if (!db) return;
+  if (!confirm("¿Estás seguro de que deseas eliminar todo el historial de mensajes de la base de datos?")) return;
+  try {
+    const { error } = await db.from('messages').delete().neq('id', 0);
+    if (error) throw error;
+    showToast("🗑️ Todo eliminado");
+    await loadMessages();
+  } catch (err) {
+    showToast("❌ Error al eliminar: " + err.message);
+  }
 }
 
 function handlePcFile(file) {
