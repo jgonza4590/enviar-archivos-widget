@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC Widget · Recibir del Móvil</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f13;
+    --card: #1a1a22;
+    --border: #2a2a36;
+    --accent: #6c63ff;
+    --accent2: #a78bfa;
+    --text: #f0f0f5;
+    --muted: #888899;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --new: rgba(108,99,255,0.08);
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); width: 380px; min-height: 100vh; overflow-x: hidden; }
+
+  .header { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); z-index: 10; }
+  .header-left { display: flex; align-items: center; gap: 8px; }
+  .header-left h1 { font-size: 15px; font-weight: 600; }
+  .header-left span { font-size: 11px; color: var(--muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); display: inline-block; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .refresh-btn { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+  .tabs { display: flex; gap: 3px; padding: 10px 12px 0; }
+  .tab { padding: 7px 14px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border: 1px solid transparent; border-bottom: none; }
+  .tab.active { color: var(--text); border-color: var(--border); background: var(--card); }
+
+  .panel { display: none; padding: 14px; }
+  .panel.active { display: block; }
+
+  /* MENSAJES RECIBIDOS */
+  .msg-list { display: flex; flex-direction: column; gap: 8px; }
+  .msg { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: default; transition: border-color 0.15s; }
+  .msg.new { border-color: var(--accent); background: var(--new); }
+  .msg-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+  .msg-icon { width: 32px; height: 32px; border-radius: 8px; background: rgba(108,99,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .msg-meta { flex: 1; min-width: 0; }
+  .msg-source { font-size: 11px; color: var(--accent2); font-weight: 500; }
+  .msg-time { font-size: 10px; color: var(--muted); }
+  .msg-text { font-size: 14px; line-height: 1.6; word-break: break-word; color: var(--text); margin-bottom: 6px; }
+  .msg-img { width: 100%; border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
+  .msg-img:hover { opacity: 0.9; }
+  .msg-file { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg); border-radius: 8px; margin-bottom: 6px; text-decoration: none; }
+  .msg-file span { font-size: 13px; color: var(--accent2); }
+  .msg-file small { font-size: 11px; color: var(--muted); display: block; }
+  .msg-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .action-btn { background: var(--border); border: none; color: var(--text); border-radius: 6px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .action-btn:hover { background: var(--accent); }
+  .action-btn.danger { background: rgba(239,68,68,0.15); color: var(--danger); }
+  .action-btn.danger:hover { background: var(--danger); color: white; }
+
+  /* ENVIAR AL MÓVIL */
+  label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 5px; letter-spacing: 0.04em; text-transform: uppercase; }
+  textarea { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 12px; resize: none; height: 90px; margin-bottom: 12px; outline: none; transition: border-color 0.2s; }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  .dropzone { border: 2px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; color: var(--muted); font-size: 13px; cursor: pointer; transition: all 0.2s; margin-bottom: 12px; }
+  .dropzone:hover, .dropzone.dragover { border-color: var(--accent); color: var(--accent2); }
+  input[type="file"] { display: none; }
+
+  .send-preview { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .send-preview-name { flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .send-preview-size { font-size: 11px; color: var(--muted); }
+  .remove-file-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; }
+
+  .btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+  .btn:hover { background: #5a52e0; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .send-status { margin-top: 10px; font-size: 13px; text-align: center; min-height: 20px; }
+  .send-status.ok { color: var(--success); }
+  .send-status.err { color: var(--danger); }
+
+  .empty { text-align: center; color: var(--muted); font-size: 14px; padding: 40px 16px; }
+  .badge { background: var(--accent); color: white; border-radius: 10px; font-size: 10px; font-weight: 600; padding: 1px 6px; margin-left: 5px; display: inline-block; vertical-align: middle; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <span class="dot"></span>
+    <div>
+      <h1>PC Widget</h1>
+      <span>Sincronizado con Samsung</span>
+    </div>
+  </div>
+  <button class="refresh-btn" onclick="loadMessages()">↺ Actualizar</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('recibidos')">📱 Del móvil <span id="badge" class="badge" style="display:none">0</span></div>
+  <div class="tab" onclick="switchTab('enviar')">💻 Enviar al móvil</div>
+</div>
+
+<!-- RECIBIDOS DEL MÓVIL -->
+<div class="panel active" id="panel-recibidos">
+  <div id="msgList" class="msg-list"><div class="empty">Cargando...</div></div>
+</div>
+
+<!-- ENVIAR AL MÓVIL -->
+<div class="panel" id="panel-enviar">
+  <label>Mensaje o link</label>
+  <textarea id="pcText" placeholder="Escribe algo para enviar al móvil..."></textarea>
+  <label>Adjuntar archivo (opcional)</label>
+  <div class="dropzone" id="pcDropzone" onclick="document.getElementById('pcFile').click()">
+    ↑ Clic para seleccionar o arrastra aquí
+  </div>
+  <input type="file" id="pcFile" onchange="handlePcFile(this.files[0])">
+  <div id="pcPreview" style="display:none" class="send-preview">
+    <span style="font-size:20px" id="pcPreviewIcon">📎</span>
+    <div style="flex:1;min-width:0">
+      <div class="send-preview-name" id="pcPreviewName"></div>
+      <div class="send-preview-size" id="pcPreviewSize"></div>
+      <div class="progress-bar"><div class="progress-fill" id="pcProgress"></div></div>
+    </div>
+    <button class="remove-file-btn" onclick="removePcFile()">×</button>
+  </div>
+  <button class="btn" id="pcSendBtn" onclick="sendToMobile()">
+    <svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    Enviar al móvil
+  </button>
+  <div class="send-status" id="pcStatus"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://wovohmprpqsxutmpxhiw.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indvdm9obXBycHFzeHV0bXB4aGl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NTI5NDcsImV4cCI6MjA5NjIyODk0N30.xGtd58k4KvHpOL9oyPVUEQdISXgYZhNFN1vyT64lUjc";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let seenIds = new Set();
+let pcFile = null;
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['recibidos','enviar'][i]===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+async function loadMessages() {
+  const el = document.getElementById('msgList');
+  const { data, error } = await db.from('messages').select('*').eq('source','mobile').order('created_at',{ascending:false}).limit(30);
+  if(error) { el.innerHTML = '<div class="empty">Error al cargar: '+error.message+'</div>'; return; }
+  if(!data?.length) { el.innerHTML = '<div class="empty">Nada recibido todavía.<br><small>Abre index.html en el Samsung y envía algo.</small></div>'; return; }
+
+  const newCount = data.filter(m=>!seenIds.has(m.id)).length;
+  data.forEach(m=>seenIds.add(m.id));
+  if(newCount > 0 && el.querySelector('.empty') === null) showToast(`${newCount} mensaje${newCount>1?'s':''} nuevo${newCount>1?'s':''}`);
+
+  const badge = document.getElementById('badge');
+  badge.style.display = newCount ? 'inline-block' : 'none';
+  badge.textContent = newCount;
+
+  el.innerHTML = data.map(m => `
+    <div class="msg ${!seenIds.has(m.id)?'new':''}">
+      <div class="msg-top">
+        <div class="msg-icon">${m.file_name ? getEmoji(m.file_type||'',m.file_name) : '💬'}</div>
+        <div class="msg-meta">
+          <div class="msg-source">📱 Samsung</div>
+          <div class="msg-time">${timeAgo(m.created_at)}</div>
+        </div>
+      </div>
+      ${m.text ? `<div class="msg-text">${escHtml(m.text)}</div>` : ''}
+      ${m.image_url && m.file_type?.startsWith('image/') ? `<img class="msg-img" src="${m.image_url}" loading="lazy" onclick="window.open('${m.image_url}')">` : ''}
+      ${m.image_url && m.file_name && !m.file_type?.startsWith('image/') ? `
+        <a class="msg-file" href="${m.image_url}" target="_blank">
+          <span style="font-size:22px">${getEmoji(m.file_type||'',m.file_name)}</span>
+          <div><span>${m.file_name}</span><small>Clic para abrir/descargar</small></div>
+        </a>` : ''}
+      <div class="msg-actions">
+        ${m.text ? `<button class="action-btn" onclick="copyText('${escAttr(m.text)}')">📋 Copiar texto</button>` : ''}
+        ${m.image_url ? `<button class="action-btn" onclick="window.open('${m.image_url}')">⬇️ Descargar</button>` : ''}
+        <button class="action-btn danger" onclick="deleteMsg(${m.id}, this)">🗑️ Borrar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function deleteMsg(id, btn) {
+  btn.closest('.msg').style.opacity = '0.4';
+  await db.from('messages').delete().eq('id', id);
+  await loadMessages();
+}
+
+function handlePcFile(file) {
+  if(!file) return;
+  pcFile = file;
+  document.getElementById('pcPreview').style.display = 'flex';
+  document.getElementById('pcPreviewName').textContent = file.name;
+  document.getElementById('pcPreviewSize').textContent = formatSize(file.size);
+  document.getElementById('pcPreviewIcon').textContent = getEmoji(file.type, file.name);
+  document.getElementById('pcProgress').style.width = '0%';
+}
+
+function removePcFile() { pcFile = null; document.getElementById('pcPreview').style.display = 'none'; document.getElementById('pcFile').value=''; }
+
+async function sendToMobile() {
+  const text = document.getElementById('pcText').value.trim();
+  if(!text && !pcFile) { setPcStatus('Escribe algo o selecciona un archivo','err'); return; }
+  const btn = document.getElementById('pcSendBtn');
+  btn.disabled = true;
+  setPcStatus('','');
+
+  try {
+    let fileUrl = null, fileName = null, fileType = null;
+    if(pcFile) {
+      const path = `${Date.now()}_${pcFile.name}`;
+      const { error: upErr } = await db.storage.from('uploads').upload(path, pcFile);
+      if(upErr) throw upErr;
+      document.getElementById('pcProgress').style.width = '80%';
+      const { data: urlData } = db.storage.from('uploads').getPublicUrl(path);
+      fileUrl = urlData.publicUrl;
+      fileName = pcFile.name;
+      fileType = pcFile.type;
+      document.getElementById('pcProgress').style.width = '100%';
+    }
+    const { error } = await db.from('messages').insert([{ text: text||null, image_url: fileUrl, file_name: fileName, file_type: fileType, source: 'pc' }]);
+    if(error) throw error;
+    setPcStatus('✅ Enviado al móvil','ok');
+    document.getElementById('pcText').value = '';
+    removePcFile();
+    setTimeout(()=>setPcStatus('',''),5000);
+  } catch(err) {
+    setPcStatus('Error: '+err.message,'err');
+  } finally { btn.disabled = false; }
+}
+
+function setPcStatus(msg,type) { const s=document.getElementById('pcStatus'); s.textContent=msg; s.className='send-status '+type; }
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(()=>showToast('Copiado al portapapeles'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+function getEmoji(type, name) {
+  if(type.startsWith('image/')) return '🖼️';
+  if(type.startsWith('video/')) return '🎬';
+  if(type.startsWith('audio/')) return '🎵';
+  if(type==='application/pdf') return '📄';
+  if(name.match(/\.(doc|docx)$/i)) return '📝';
+  if(name.match(/\.(xls|xlsx|csv)$/i)) return '📊';
+  if(name.match(/\.(zip|rar|7z)$/i)) return '📦';
+  return '📎';
+}
+
+function formatSize(b) { if(b<1024)return b+' B'; if(b<1048576)return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
+function timeAgo(iso) { const d=(Date.now()-new Date(iso))/1000; if(d<60)return 'hace un momento'; if(d<3600)return `hace ${Math.floor(d/60)} min`; if(d<86400)return `hace ${Math.floor(d/3600)} h`; return `hace ${Math.floor(d/86400)} días`; }
+function escHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(t) { return t.replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+// Drag & drop en el panel de enviar
+const dz = document.getElementById('pcDropzone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files[0])handlePcFile(e.dataTransfer.files[0])});
+
+// Tiempo real con Supabase Realtime
+const channel = db.channel('messages-channel')
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'source=eq.mobile' }, () => loadMessages())
+  .subscribe();
+
+// Carga inicial
+loadMessages();
+// Auto-refresh cada 30 segundos como fallback
+setInterval(loadMessages, 30000);
+</script>
+</body>
+</html>
