@@ -22,6 +22,23 @@
     --text: #ededf5;
     --muted: #808092;
     --new: rgba(124, 127, 168, 0.06);
+    --modal-overlay: rgba(15, 15, 19, 0.96);
+  }
+  body.light-theme {
+    --bg: #ffffff;
+    --card: #f8f9fa;
+    --border: #e2e8f0;
+    --bs-border-color: var(--border);
+    --bs-tertiary-bg: #edf2f7;
+    --accent: #7c7fa8;
+    --accent2: #5a5d85;
+    --progress: #c4956a;
+    --success: #6a9e82;
+    --danger: #ef4444;
+    --text: #1a202c;
+    --muted: #718096;
+    --new: rgba(124, 127, 168, 0.08);
+    --modal-overlay: rgba(255, 255, 255, 0.95);
   }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); width: 380px; min-height: 100vh; overflow-x: hidden; }
 
@@ -179,6 +196,11 @@
 </style>
 </head>
 <body>
+<script>
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light-theme');
+  }
+</script>
 
 <div class="header pywebview-drag-region">
   <div class="header-left">
@@ -190,6 +212,9 @@
   </div>
   <div style="display: flex; gap: 6px; align-items: center;">
     <button class="refresh-btn" onclick="loadMessages()">↺ Actualizar</button>
+    <button id="themeToggleBtn" class="settings-btn" onclick="toggleTheme()" title="Cambiar Tema">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
     <button id="pcSettingsBtn" class="settings-btn" onclick="toggleSettingsModal()" title="Configurar Supabase">
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
@@ -197,7 +222,7 @@
 </div>
 
 <!-- CONFIGURACIÓN MODAL -->
-<div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 15, 19, 0.96); z-index: 1000; align-items: center; justify-content: center; padding: 14px;">
+<div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-overlay); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 14px;">
   <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 340px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;">
     <h2 style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
       <span>Configurar Supabase</span>
@@ -478,10 +503,26 @@ function setupRealtime() {
   realtimeChannel.subscribe();
 }
 
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-theme');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  updateThemeIcon();
+}
+
+function updateThemeIcon() {
+  const btn = document.getElementById('themeToggleBtn');
+  if (!btn) return;
+  const isLight = document.body.classList.contains('light-theme');
+  btn.innerHTML = isLight 
+    ? `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+    : `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+}
+
 // Inicialización al cargar la página
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cfgUrl').value = localStorage.getItem('supabase_url') || '';
   document.getElementById('cfgKey').value = localStorage.getItem('supabase_key') || '';
+  updateThemeIcon();
   initSupabase();
   
   // Auto-refresh cada 30 segundos como fallback

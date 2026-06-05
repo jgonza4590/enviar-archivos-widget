@@ -21,6 +21,24 @@
     --danger: #ef4444;
     --text: #ededf5;
     --muted: #808092;
+    --modal-overlay: rgba(15, 15, 19, 0.95);
+    --sel-bg: rgba(124, 127, 168, 0.1);
+  }
+  body.light-theme {
+    --bg: #ffffff;
+    --card: #f8f9fa;
+    --border: #e2e8f0;
+    --bs-border-color: var(--border);
+    --bs-tertiary-bg: #edf2f7;
+    --accent: #7c7fa8;
+    --accent2: #5a5d85;
+    --progress: #c4956a;
+    --success: #6a9e82;
+    --danger: #ef4444;
+    --text: #1a202c;
+    --muted: #718096;
+    --modal-overlay: rgba(255, 255, 255, 0.95);
+    --sel-bg: rgba(124, 127, 168, 0.15);
   }
   body {
     font-family: 'DM Sans', sans-serif;
@@ -87,12 +105,11 @@
   textarea::placeholder { color: var(--muted); }
 
   .filetypes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1rem; }
-  .ft { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 4px 8px; text-align: center; cursor: pointer; transition: all 0.15s; }
-  .ft:hover { border-color: var(--accent); }
-  .ft.sel { border-color: var(--accent); background: rgba(124, 127, 168, 0.1); }
-  .ft svg { display: block; margin: 0 auto 5px; }
-  .ft span { font-size: 10px; color: var(--muted); }
-  .ft.sel span { color: var(--accent2); }
+  .ft { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 4px 8px; text-align: center; cursor: pointer; transition: all 0.15s; color: var(--muted); }
+  .ft:hover { border-color: var(--accent); color: var(--accent2); }
+  .ft.sel { border-color: var(--accent); background: var(--sel-bg); color: var(--accent); }
+  .ft svg { display: block; margin: 0 auto 5px; stroke: currentColor; }
+  .ft span { font-size: 10px; color: inherit; }
 
   .dropzone { border: 1.5px dashed var(--border); border-radius: 10px; padding: 24px 16px; text-align: center; color: var(--muted); font-size: 13px; cursor: pointer; transition: all 0.2s; margin-bottom: 1rem; background: rgba(255,255,255,0.01); }
   .dropzone:hover, .dropzone.dragover { border-color: var(--accent); color: var(--accent2); }
@@ -221,17 +238,27 @@
 </style>
 </head>
 <body>
+<script>
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light-theme');
+  }
+</script>
 
 <h1 style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
   <span><span class="dot"></span>Enviar al PC</span>
-  <button id="settingsBtn" class="settings-btn" onclick="toggleSettingsModal()" title="Configurar Supabase">
-    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-  </button>
+  <div style="display: flex; gap: 8px; align-items: center;">
+    <button id="themeToggleBtn" class="settings-btn" onclick="toggleTheme()" title="Cambiar Tema">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <button id="settingsBtn" class="settings-btn" onclick="toggleSettingsModal()" title="Configurar Supabase">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
 </h1>
 <p class="subtitle">Samsung → PC · Supabase Cloud</p>
 
 <!-- CONFIGURACIÓN MODAL -->
-<div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 15, 19, 0.95); z-index: 1000; align-items: center; justify-content: center; padding: 16px;">
+<div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-overlay); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 16px;">
   <div style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 380px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;">
     <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
       <span>Configurar Supabase</span>
@@ -264,35 +291,35 @@
   <label>Tipo de archivo</label>
   <div class="filetypes">
     <div class="ft sel" data-type="image/*" onclick="selectType(this,'image/*')">
-      <svg width="22" height="22" fill="none" stroke="#6c63ff" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
       <span>Imagen</span>
     </div>
     <div class="ft" data-type="application/pdf" onclick="selectType(this,'application/pdf')">
-      <svg width="22" height="22" fill="none" stroke="#888899" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>
       <span>PDF</span>
     </div>
     <div class="ft" data-type="video/*" onclick="selectType(this,'video/*')">
-      <svg width="22" height="22" fill="none" stroke="#888899" stroke-width="1.8" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
       <span>Video</span>
     </div>
     <div class="ft" data-type="audio/*" onclick="selectType(this,'audio/*')">
-      <svg width="22" height="22" fill="none" stroke="#888899" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
       <span>Audio</span>
     </div>
-    <div class="ft" data-type=".doc,.docx" onclick="selectType(this,'.doc,.docx')">
-      <svg width="22" height="22" fill="none" stroke="#888899" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+    <div class="ft" data-type=".doc,.docx" onclick="selectType(this,'./doc,.docx')">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
       <span>Word</span>
     </div>
     <div class="ft" data-type=".xls,.xlsx,.csv" onclick="selectType(this,'.xls,.xlsx,.csv')">
-      <svg width="22" height="22" fill="none" stroke="#888899" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="11" y2="13"/><line x1="13" y1="13" x2="15" y2="13"/></svg>
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="11" y2="13"/><line x1="13" y1="13" x2="15" y2="13"/></svg>
       <span>Excel</span>
     </div>
     <div class="ft" data-type=".zip,.rar,.7z" onclick="selectType(this,'.zip,.rar,.7z')">
-      <svg width="22" height="22" fill="none" stroke="#888899" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
       <span>ZIP</span>
     </div>
     <div class="ft" data-type="*" onclick="selectType(this,'*')">
-      <svg width="22" height="22" fill="none" stroke="#888899" stroke-width="1.8" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
       <span>Otro</span>
     </div>
   </div>
@@ -427,10 +454,8 @@ function switchTab(name) {
 function selectType(el, accept) {
   document.querySelectorAll('.ft').forEach(f=>{
     f.classList.remove('sel');
-    f.querySelector('svg').setAttribute('stroke','#888899');
   });
   el.classList.add('sel');
-  el.querySelector('svg').setAttribute('stroke','#6c63ff');
   currentAccept = accept;
   document.getElementById('fileInput').accept = accept === '*' ? '' : accept;
   if(selectedFile) removeFile();
@@ -616,10 +641,26 @@ function setupRealtime() {
   realtimeChannel.subscribe();
 }
 
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-theme');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  updateThemeIcon();
+}
+
+function updateThemeIcon() {
+  const btn = document.getElementById('themeToggleBtn');
+  if (!btn) return;
+  const isLight = document.body.classList.contains('light-theme');
+  btn.innerHTML = isLight 
+    ? `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+    : `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+}
+
 // Inicialización
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cfgUrl').value = localStorage.getItem('supabase_url') || '';
   document.getElementById('cfgKey').value = localStorage.getItem('supabase_key') || '';
+  updateThemeIcon();
   initSupabase();
 });
 </script>
