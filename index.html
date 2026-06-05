@@ -404,7 +404,7 @@ function toggleSettingsModal(forceClose = false) {
 }
 
 function saveSettings() {
-  const url = document.getElementById('cfgUrl').value.trim();
+  let url = document.getElementById('cfgUrl').value.trim();
   const key = document.getElementById('cfgKey').value.trim();
   const status = document.getElementById('cfgStatus');
   
@@ -412,6 +412,10 @@ function saveSettings() {
     status.textContent = "Introduce ambos campos.";
     status.className = "status err";
     return;
+  }
+  
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1);
   }
   
   localStorage.setItem('supabase_url', url);
