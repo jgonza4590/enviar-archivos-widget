@@ -88,6 +88,10 @@
 
   .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
   .progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+  .settings-btn { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+  .settings-btn:hover { border-color: var(--accent); color: var(--accent2); background: rgba(255,255,255,0.02); }
+  .modal-input { width: 100%; background: var(--bg) !important; border: 1px solid var(--border) !important; border-radius: 10px !important; color: var(--text) !important; font-family: inherit; font-size: 13px !important; padding: 10px !important; margin-bottom: 14px !important; outline: none; transition: border-color 0.2s; }
+  .modal-input:focus { border-color: var(--accent) !important; }
 </style>
 </head>
 <body>
@@ -100,7 +104,32 @@
       <span>Sincronizado con Samsung</span>
     </div>
   </div>
-  <button class="refresh-btn" onclick="loadMessages()">↺ Actualizar</button>
+  <div style="display: flex; gap: 6px; align-items: center;">
+    <button class="refresh-btn" onclick="loadMessages()">↺ Actualizar</button>
+    <button id="pcSettingsBtn" class="settings-btn" onclick="toggleSettingsModal()" title="Configurar Supabase">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- CONFIGURACIÓN MODAL -->
+<div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 15, 19, 0.96); z-index: 1000; align-items: center; justify-content: center; padding: 14px;">
+  <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 340px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;">
+    <h2 style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+      <span>Configurar Supabase</span>
+      <button id="closeSettingsBtn" onclick="toggleSettingsModal(true)" style="background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; line-height:1; display:none;">&times;</button>
+    </h2>
+    <p style="font-size: 11px; color: var(--muted); margin-bottom: 14px; line-height: 1.4;">Las credenciales se guardan localmente en tu navegador.</p>
+    
+    <label style="font-size: 10px;">Supabase Project URL</label>
+    <input type="text" id="cfgUrl" class="modal-input" placeholder="https://xxxxxxxxxxxxxx.supabase.co">
+    
+    <label style="font-size: 10px;">Supabase Anon Public Key</label>
+    <textarea id="cfgKey" class="modal-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="height: 70px; resize: none; margin-bottom: 14px !important;"></textarea>
+    
+    <button class="btn" onclick="saveSettings()">Guardar Configuración</button>
+    <div id="cfgStatus" style="margin-top: 8px; text-align: center; font-size: 12px; min-height: 16px;"></div>
+  </div>
 </div>
 
 <div class="tabs">
@@ -141,9 +170,77 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL = "https://wovohmprpqsxutmpxhiw.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indvdm9obXBycHFzeHV0bXB4aGl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NTI5NDcsImV4cCI6MjA5NjIyODk0N30.xGtd58k4KvHpOL9oyPVUEQdISXgYZhNFN1vyT64lUjc";
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let db = null;
+let realtimeChannel = null;
+
+function initSupabase() {
+  const url = localStorage.getItem('supabase_url');
+  const key = localStorage.getItem('supabase_key');
+  
+  if (!url || !key) {
+    document.getElementById('settingsModal').style.display = 'flex';
+    document.getElementById('closeSettingsBtn').style.display = 'none';
+    return false;
+  }
+  
+  try {
+    db = supabase.createClient(url, key);
+    setupRealtime();
+    loadMessages();
+    return true;
+  } catch (err) {
+    console.error("Error al conectar a Supabase:", err);
+    showToast("❌ Error al conectar a Supabase");
+    document.getElementById('settingsModal').style.display = 'flex';
+    return false;
+  }
+}
+
+function toggleSettingsModal(forceClose = false) {
+  const modal = document.getElementById('settingsModal');
+  const hasCreds = localStorage.getItem('supabase_url') && localStorage.getItem('supabase_key');
+  
+  if (modal.style.display === 'flex' || forceClose) {
+    if (!hasCreds && !forceClose) {
+      alert("Debes configurar Supabase para usar la aplicación.");
+      return;
+    }
+    modal.style.display = 'none';
+  } else {
+    document.getElementById('cfgUrl').value = localStorage.getItem('supabase_url') || '';
+    document.getElementById('cfgKey').value = localStorage.getItem('supabase_key') || '';
+    document.getElementById('closeSettingsBtn').style.display = hasCreds ? 'block' : 'none';
+    modal.style.display = 'flex';
+  }
+}
+
+function saveSettings() {
+  const url = document.getElementById('cfgUrl').value.trim();
+  const key = document.getElementById('cfgKey').value.trim();
+  const status = document.getElementById('cfgStatus');
+  
+  if (!url || !key) {
+    status.textContent = "Introduce ambos campos.";
+    status.className = "send-status err";
+    return;
+  }
+  
+  localStorage.setItem('supabase_url', url);
+  localStorage.setItem('supabase_key', key);
+  status.textContent = "Conectando...";
+  status.className = "send-status ok";
+  
+  setTimeout(() => {
+    if (initSupabase()) {
+      document.getElementById('settingsModal').style.display = 'none';
+      showToast("✅ Supabase configurado");
+      status.textContent = "";
+    } else {
+      status.textContent = "Error de conexión.";
+      status.className = "send-status err";
+    }
+  }, 400);
+}
 
 let seenIds = new Set();
 let pcFile = null;
@@ -156,6 +253,10 @@ function switchTab(name) {
 
 async function loadMessages() {
   const el = document.getElementById('msgList');
+  if (!db) {
+    el.innerHTML = '<div class="empty">Supabase no está configurado. Haz clic en el engranaje ⚙️.</div>';
+    return;
+  }
   const { data, error } = await db.from('messages').select('*').eq('source','mobile').order('created_at',{ascending:false}).limit(30);
   if(error) { el.innerHTML = '<div class="empty">Error al cargar: '+error.message+'</div>'; return; }
   if(!data?.length) { el.innerHTML = '<div class="empty">Nada recibido todavía.<br><small>Abre index.html en el Samsung y envía algo.</small></div>'; return; }
@@ -194,6 +295,7 @@ async function loadMessages() {
 }
 
 async function deleteMsg(id, btn) {
+  if (!db) return;
   btn.closest('.msg').style.opacity = '0.4';
   await db.from('messages').delete().eq('id', id);
   await loadMessages();
@@ -212,6 +314,11 @@ function handlePcFile(file) {
 function removePcFile() { pcFile = null; document.getElementById('pcPreview').style.display = 'none'; document.getElementById('pcFile').value=''; }
 
 async function sendToMobile() {
+  if (!db) {
+    setPcStatus('Supabase no está configurado', 'err');
+    toggleSettingsModal();
+    return;
+  }
   const text = document.getElementById('pcText').value.trim();
   if(!text && !pcFile) { setPcStatus('Escribe algo o selecciona un archivo','err'); return; }
   const btn = document.getElementById('pcSendBtn');
@@ -277,15 +384,27 @@ dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover
 dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files[0])handlePcFile(e.dataTransfer.files[0])});
 
-// Tiempo real con Supabase Realtime
-const channel = db.channel('messages-channel')
-  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'source=eq.mobile' }, () => loadMessages())
-  .subscribe();
+function setupRealtime() {
+  if (!db) return;
+  if (realtimeChannel) {
+    db.removeChannel(realtimeChannel);
+  }
+  realtimeChannel = db.channel('messages-channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'source=eq.mobile' }, () => loadMessages());
+  realtimeChannel.subscribe();
+}
 
-// Carga inicial
-loadMessages();
-// Auto-refresh cada 30 segundos como fallback
-setInterval(loadMessages, 30000);
+// Inicialización al cargar la página
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('cfgUrl').value = localStorage.getItem('supabase_url') || '';
+  document.getElementById('cfgKey').value = localStorage.getItem('supabase_key') || '';
+  initSupabase();
+  
+  // Auto-refresh cada 30 segundos como fallback
+  setInterval(() => {
+    if (db) loadMessages();
+  }, 30000);
+});
 </script>
 </body>
 </html>

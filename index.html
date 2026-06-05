@@ -93,12 +93,41 @@
   .loader { text-align: center; color: var(--muted); font-size: 13px; padding: 30px 0; }
   .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 12px 24px; border-radius: 25px; font-size: 14px; font-weight: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
   .toast.show { opacity: 1; }
+  .settings-btn { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; transition: all 0.2s; }
+  .settings-btn:hover { color: var(--accent2); background: rgba(255,255,255,0.05); }
+  .modal-input { width: 100%; background: var(--bg) !important; border: 1px solid var(--border) !important; border-radius: 10px !important; color: var(--text) !important; font-family: inherit; font-size: 14px !important; padding: 12px !important; margin-bottom: 16px !important; outline: none; transition: border-color 0.2s; }
+  .modal-input:focus { border-color: var(--accent) !important; }
 </style>
 </head>
 <body>
 
-<h1><span class="dot"></span>Enviar al PC</h1>
+<h1 style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+  <span><span class="dot"></span>Enviar al PC</span>
+  <button id="settingsBtn" class="settings-btn" onclick="toggleSettingsModal()" title="Configurar Supabase">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</h1>
 <p class="subtitle">Samsung → PC · Supabase Cloud</p>
+
+<!-- CONFIGURACIÓN MODAL -->
+<div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 15, 19, 0.95); z-index: 1000; align-items: center; justify-content: center; padding: 16px;">
+  <div style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 380px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;">
+    <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+      <span>Configurar Supabase</span>
+      <button id="closeSettingsBtn" onclick="toggleSettingsModal(true)" style="background:none; border:none; color:var(--muted); font-size:24px; cursor:pointer; line-height:1; display:none;">&times;</button>
+    </h2>
+    <p style="font-size: 11px; color: var(--muted); margin-bottom: 18px; line-height: 1.4;">Tus credenciales se guardan solo en tu navegador (localStorage) y nunca se envían a GitHub.</p>
+    
+    <label style="font-size: 10px;">Supabase Project URL</label>
+    <input type="text" id="cfgUrl" class="modal-input" placeholder="https://xxxxxxxxxxxxxx.supabase.co">
+    
+    <label style="font-size: 10px;">Supabase Anon Public Key</label>
+    <textarea id="cfgKey" class="modal-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="height: 80px; resize: none; margin-bottom: 18px !important;"></textarea>
+    
+    <button class="btn" onclick="saveSettings()">Guardar Configuración</button>
+    <div id="cfgStatus" style="margin-top: 10px; text-align: center; font-size: 12px; min-height: 18px;"></div>
+  </div>
+</div>
 
 <div class="tabs">
   <div class="tab active" onclick="switchTab('enviar')">Enviar</div>
@@ -183,9 +212,78 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL = "https://wovohmprpqsxutmpxhiw.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indvdm9obXBycHFzeHV0bXB4aGl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NTI5NDcsImV4cCI6MjA5NjIyODk0N30.xGtd58k4KvHpOL9oyPVUEQdISXgYZhNFN1vyT64lUjc";
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let db = null;
+let realtimeChannel = null;
+
+function initSupabase() {
+  const url = localStorage.getItem('supabase_url');
+  const key = localStorage.getItem('supabase_key');
+  
+  if (!url || !key) {
+    document.getElementById('settingsModal').style.display = 'flex';
+    document.getElementById('closeSettingsBtn').style.display = 'none';
+    return false;
+  }
+  
+  try {
+    db = supabase.createClient(url, key);
+    setupRealtime();
+    return true;
+  } catch (err) {
+    console.error("Error al conectar a Supabase:", err);
+    showToast("❌ Error al conectar a Supabase");
+    document.getElementById('settingsModal').style.display = 'flex';
+    return false;
+  }
+}
+
+function toggleSettingsModal(forceClose = false) {
+  const modal = document.getElementById('settingsModal');
+  const hasCreds = localStorage.getItem('supabase_url') && localStorage.getItem('supabase_key');
+  
+  if (modal.style.display === 'flex' || forceClose) {
+    if (!hasCreds && !forceClose) {
+      alert("Debes configurar Supabase para usar la aplicación.");
+      return;
+    }
+    modal.style.display = 'none';
+  } else {
+    document.getElementById('cfgUrl').value = localStorage.getItem('supabase_url') || '';
+    document.getElementById('cfgKey').value = localStorage.getItem('supabase_key') || '';
+    document.getElementById('closeSettingsBtn').style.display = hasCreds ? 'block' : 'none';
+    modal.style.display = 'flex';
+  }
+}
+
+function saveSettings() {
+  const url = document.getElementById('cfgUrl').value.trim();
+  const key = document.getElementById('cfgKey').value.trim();
+  const status = document.getElementById('cfgStatus');
+  
+  if (!url || !key) {
+    status.textContent = "Introduce ambos campos.";
+    status.className = "status err";
+    return;
+  }
+  
+  localStorage.setItem('supabase_url', url);
+  localStorage.setItem('supabase_key', key);
+  status.textContent = "Conectando...";
+  status.className = "status ok";
+  
+  setTimeout(() => {
+    if (initSupabase()) {
+      document.getElementById('settingsModal').style.display = 'none';
+      showToast("✅ Supabase configurado");
+      status.textContent = "";
+      if (document.getElementById('tab-recibidos').classList.contains('active')) loadReceived();
+      if (document.getElementById('tab-historial').classList.contains('active')) loadHistory();
+    } else {
+      status.textContent = "Error de conexión.";
+      status.className = "status err";
+    }
+  }, 400);
+}
 
 let selectedFile = null;
 let currentAccept = 'image/*';
@@ -262,6 +360,11 @@ function getFileEmoji(type, name) {
 }
 
 async function sendMessage() {
+  if (!db) {
+    setStatus('Supabase no está configurado', 'err');
+    toggleSettingsModal();
+    return;
+  }
   const text = document.getElementById('textInput').value.trim();
   if(!text && !selectedFile) {
     setStatus('Escribe algo o selecciona un archivo', 'err'); return;
@@ -317,6 +420,10 @@ function setStatus(msg, type) {
 
 async function loadHistory() {
   const el = document.getElementById('historyList');
+  if (!db) {
+    el.innerHTML = '<div class="empty">Supabase no está configurado. Haz clic en el engranaje ⚙️ para configurarlo.</div>';
+    return;
+  }
   el.innerHTML = '<div class="loader">Cargando...</div>';
   const { data, error } = await db.from('messages').select('*').eq('source','mobile').order('created_at',{ascending:false}).limit(20);
   if(error || !data?.length) { el.innerHTML = '<div class="empty">No has enviado nada todavía</div>'; return; }
@@ -335,6 +442,10 @@ async function loadHistory() {
 
 async function loadReceived() {
   const el = document.getElementById('recvList');
+  if (!db) {
+    el.innerHTML = '<div class="empty">Supabase no está configurado. Haz clic en el engranaje ⚙️ para configurarlo.</div>';
+    return;
+  }
   el.innerHTML = '<div class="loader">Cargando mensajes del PC...</div>';
   const { data, error } = await db.from('messages').select('*').eq('source','pc').order('created_at',{ascending:false}).limit(20);
   if(error || !data?.length) { el.innerHTML = '<div class="empty">No hay mensajes del PC todavía</div>'; return; }
@@ -371,12 +482,25 @@ dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
 
 // Tiempo real: Avisar cuando llega algo del PC
-db.channel('pc-to-mobile')
-  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'source=eq.pc' }, payload => {
-    showToast('📩 Nuevo mensaje del PC');
-    if(document.getElementById('tab-recibidos').classList.contains('active')) loadReceived();
-  })
-  .subscribe();
+function setupRealtime() {
+  if (!db) return;
+  if (realtimeChannel) {
+    db.removeChannel(realtimeChannel);
+  }
+  realtimeChannel = db.channel('pc-to-mobile')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'source=eq.pc' }, payload => {
+      showToast('📩 Nuevo mensaje del PC');
+      if (document.getElementById('tab-recibidos').classList.contains('active')) loadReceived();
+    });
+  realtimeChannel.subscribe();
+}
+
+// Inicialización
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('cfgUrl').value = localStorage.getItem('supabase_url') || '';
+  document.getElementById('cfgKey').value = localStorage.getItem('supabase_key') || '';
+  initSupabase();
+});
 </script>
 </body>
 </html>
