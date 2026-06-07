@@ -1,0 +1,11 @@
+# 1. Asegúrate de estar en la carpeta del proyecto
+cd "D:\Users\Juanita\Desktop\enviar archivos widget"
+
+# 2. Agregar cambios
+git add .
+
+# 3. Guardar cambios localmente con un mensaje descriptivo
+git commit -m "Descripción de lo que cambiaste"
+
+# 4. Enviar a GitHub
+git push

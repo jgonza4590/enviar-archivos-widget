@@ -1,0 +1,15 @@
+{
+  "type": "AdaptiveCard",
+  "version": "1.6",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "Cargando PC Widget...",
+      "wrap": true,
+      "horizontalAlignment": "Center"
+    }
+  ],
+  "metadata": {
+    "webUrl": "pc-widget.html"
+  }
+}

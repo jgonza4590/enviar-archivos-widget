@@ -1,0 +1,39 @@
+{
+  "name": "File Sender Widget",
+  "short_name": "FileSender",
+  "description": "Widget para enviar y recibir archivos entre móvil y PC usando Supabase.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#7c7fa8",
+  "icons": [
+    {
+      "src": "https://api.iconify.design/carbon-pictograms/file-transfer.png?width=192&height=192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://api.iconify.design/carbon-pictograms/file-transfer.png?width=512&height=512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "widgets": [
+    {
+      "name": "PC Receiver",
+      "description": "Recibe enlaces y archivos enviados desde tu móvil.",
+      "tag": "pc-receiver",
+      "ms_ac_template": "widget-template.json",
+      "data": "widget-data.json",
+      "type": "application/json",
+      "screenshots": [
+        {
+          "src": "https://via.placeholder.com/600x400",
+          "sizes": "600x400",
+          "label": "Vista previa del widget"
+        }
+      ]
+    }
+  ]
+}

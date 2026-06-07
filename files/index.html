@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enviar al PC</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0a;
+    --card: #121216;
+    --border: #242432;
+    --bs-border-color: var(--border);
+    --bs-tertiary-bg: #161622;
+    --accent: #7c7fa8;
+    --accent2: #9b9ebf;
+    --progress: #c4956a;
+    --success: #6a9e82;
+    --danger: #ef4444;
+    --text: #ededf5;
+    --muted: #808092;
+    --modal-overlay: rgba(15, 15, 19, 0.95);
+    --sel-bg: rgba(124, 127, 168, 0.1);
+  }
+  body.light-theme {
+    --bg: #ffffff;
+    --card: #f8f9fa;
+    --border: #e2e8f0;
+    --bs-border-color: var(--border);
+    --bs-tertiary-bg: #edf2f7;
+    --accent: #7c7fa8;
+    --accent2: #5a5d85;
+    --progress: #c4956a;
+    --success: #6a9e82;
+    --danger: #ef4444;
+    --text: #1a202c;
+    --muted: #718096;
+    --modal-overlay: rgba(255, 255, 255, 0.95);
+    --sel-bg: rgba(124, 127, 168, 0.15);
+  }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1.25rem 3rem;
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 2px; }
+  .subtitle { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .tabs { display: flex; gap: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; }
+  .tab {
+    text-align: center;
+    padding: 8px 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  label {
+    font-size: 11px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    font-weight: 700;
+  }
+  textarea {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 12px;
+    resize: none;
+    height: 100px;
+    margin-bottom: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  .filetypes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1rem; }
+  .ft { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 4px 8px; text-align: center; cursor: pointer; transition: all 0.15s; color: var(--muted); }
+  .ft:hover { border-color: var(--accent); color: var(--accent2); }
+  .ft.sel { border-color: var(--accent); background: var(--sel-bg); color: var(--accent); }
+  .ft svg { display: block; margin: 0 auto 5px; stroke: currentColor; }
+  .ft span { font-size: 10px; color: inherit; }
+
+  .dropzone { border: 1.5px dashed var(--border); border-radius: 10px; padding: 24px 16px; text-align: center; color: var(--muted); font-size: 13px; cursor: pointer; transition: all 0.2s; margin-bottom: 1rem; background: rgba(255,255,255,0.01); }
+  .dropzone:hover, .dropzone.dragover { border-color: var(--accent); color: var(--accent2); }
+  .dropzone svg { display: block; margin: 0 auto 8px; opacity: 0.5; }
+  input[type="file"] { display: none; }
+
+  .preview {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .preview::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--progress);
+  }
+  .preview:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .preview-thumb { width: 46px; height: 46px; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+  .preview-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+  .preview-info { flex: 1; min-width: 0; }
+  .preview-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .preview-size { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .preview-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px; }
+
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+
+  .btn { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn:hover { background: #6b6e94; }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .status { margin-top: 12px; text-align: center; font-size: 14px; font-weight: 500; min-height: 22px; }
+  .status.ok { color: var(--success); }
+  .status.err { color: var(--danger); }
+
+  /* Historial */
+  .history-list { display: flex; flex-direction: column; gap: 12px; }
+  .hitem {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .hitem::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--accent);
+  }
+  .hitem:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--accent);
+  }
+  .hitem-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(124, 127, 168, 0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .hitem-info { flex: 1; min-width: 0; }
+  .hitem-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hitem-meta { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .hitem-action { background: var(--bs-tertiary-bg); border: 1px solid var(--border); color: var(--text); border-radius: 20px; padding: 4px 12px; font-size: 10px; cursor: pointer; font-family: 'DM Mono', monospace; white-space: nowrap; letter-spacing: 0.05em; transition: all 0.2s; text-transform: uppercase; font-weight: 700; }
+  .hitem-action:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  .empty { text-align: center; color: var(--muted); font-size: 14px; padding: 40px 0; }
+
+  /* Recibidos */
+  .recv-list { display: flex; flex-direction: column; gap: 12px; }
+  .recv-item {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .recv-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--progress);
+  }
+  .recv-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--accent);
+  }
+  .recv-text { font-size: 14px; line-height: 1.5; margin-bottom: 6px; word-break: break-word; }
+  .recv-meta { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.05em; }
+  .recv-img { width: 100%; border-radius: 8px; margin-top: 8px; }
+  .recv-copy { float: right; background: var(--bs-tertiary-bg); border: 1px solid var(--border); color: var(--text); border-radius: 20px; padding: 4px 12px; font-size: 10px; cursor: pointer; font-family: 'DM Mono', monospace; letter-spacing: 0.05em; transition: all 0.2s; text-transform: uppercase; font-weight: 700; }
+  .recv-copy:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  .recv-file-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent2); font-size: 13px; text-decoration: none; margin-top: 6px; }
+  .loader { text-align: center; color: var(--muted); font-size: 13px; padding: 30px 0; }
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 12px 24px; border-radius: 25px; font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.3); text-transform: uppercase; }
+  .toast.show { opacity: 1; }
+  .settings-btn { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; transition: all 0.2s; }
+  .settings-btn:hover { color: var(--accent2); background: rgba(255,255,255,0.05); }
+  .modal-input { width: 100%; background: var(--bg) !important; border: 1px solid var(--border) !important; border-radius: 10px !important; color: var(--text) !important; font-family: inherit; font-size: 14px !important; padding: 12px !important; margin-bottom: 16px !important; outline: none; transition: border-color 0.2s; }
+  .modal-input:focus { border-color: var(--accent) !important; }
+
+  /* ── NOTAS ─────────────────────────────────────── */
+  .notes-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  .notes-search {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .notes-search:focus { border-color: var(--accent); }
+  .notes-search::placeholder { color: var(--muted); }
+
+  .btn-new-note {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+  }
+  .btn-new-note:hover { background: #6b6e94; }
+
+  /* Formulario nueva nota */
+  .note-form {
+    background: var(--card);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .note-form.open { display: flex; }
+  .note-form-title {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 12px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+  .note-form-title:focus { border-color: var(--accent); }
+  .note-form-title::placeholder { color: var(--muted); font-weight: 400; }
+  .note-form-body {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    resize: none;
+    height: 80px;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+  .note-form-body:focus { border-color: var(--accent); }
+  .note-form-body::placeholder { color: var(--muted); }
+  .note-form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .note-colors {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+  }
+  .note-color-dot {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .note-color-dot:hover { transform: scale(1.2); }
+  .note-color-dot.sel { border-color: var(--text); transform: scale(1.1); }
+  .note-form-actions { display: flex; gap: 8px; }
+  .btn-save-note {
+    background: var(--accent); border: none; border-radius: 8px;
+    color: white; font-family: 'DM Mono', monospace; font-size: 11px;
+    font-weight: 700; padding: 8px 16px; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.03em;
+  }
+  .btn-save-note:hover { background: #6b6e94; }
+  .btn-cancel-note {
+    background: none; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px;
+    font-weight: 700; padding: 8px 14px; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.03em;
+  }
+  .btn-cancel-note:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Lista de notas */
+  .notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .note-card {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 14px 10px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    overflow: hidden;
+  }
+  .note-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--note-color, var(--accent));
+    border-radius: 12px 0 0 12px;
+  }
+  .note-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--accent);
+  }
+  .note-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .note-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    flex: 1;
+    word-break: break-word;
+  }
+  .note-card-title:empty { display: none; }
+  .note-pin-icon {
+    font-size: 13px;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  .note-card-body {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    word-break: break-word;
+    white-space: pre-wrap;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .note-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .note-card-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .note-card-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .note-card:hover .note-card-actions { opacity: 1; }
+  .note-action-btn {
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-size: 14px; padding: 2px 5px;
+    border-radius: 5px; transition: all 0.15s;
+    line-height: 1;
+  }
+  .note-action-btn:hover { color: var(--text); background: var(--border); }
+  .note-action-btn.danger:hover { color: var(--danger); }
+  .notes-empty {
+    text-align: center; color: var(--muted);
+    font-size: 14px; padding: 40px 0;
+  }
+  .notes-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<script>
+  // Default to light theme if no preference is saved
+  if (localStorage.getItem('theme') !== 'dark') {
+    document.body.classList.add('light-theme');
+    localStorage.setItem('theme', 'light');
+  }
+</script>
+
+<h1 style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+  <span><span class="dot"></span>Enviar al PC</span>
+  <div style="display: flex; gap: 8px; align-items: center;">
+    <button id="themeToggleBtn" class="settings-btn" onclick="toggleTheme()" title="Cambiar Tema">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <button id="settingsBtn" class="settings-btn" onclick="toggleSettingsModal()" title="Configurar Supabase">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+</h1>
+<p class="subtitle">Samsung → PC · Supabase Cloud</p>
+
+<!-- CONFIGURACIÓN MODAL -->
+<div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-overlay); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 16px;">
+  <div style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 380px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;">
+    <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+      <span>Configurar Supabase</span>
+      <button id="closeSettingsBtn" onclick="toggleSettingsModal(true)" style="background:none; border:none; color:var(--muted); font-size:24px; cursor:pointer; line-height:1; display:none;">&times;</button>
+    </h2>
+    <p style="font-size: 11px; color: var(--muted); margin-bottom: 18px; line-height: 1.4;">Tus credenciales se guardan solo en tu navegador (localStorage) y nunca se envían a GitHub.</p>
+    
+    <label style="font-size: 10px;">Supabase Project URL</label>
+    <input type="text" id="cfgUrl" class="modal-input" placeholder="https://xxxxxxxxxxxxxx.supabase.co">
+    
+    <label style="font-size: 10px;">Supabase Anon Public Key</label>
+    <textarea id="cfgKey" class="modal-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="height: 80px; resize: none; margin-bottom: 18px !important;"></textarea>
+    
+    <button class="btn" onclick="saveSettings()">Guardar Configuración</button>
+    <div id="cfgStatus" style="margin-top: 10px; text-align: center; font-size: 12px; min-height: 18px;"></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('enviar')">Enviar</div>
+  <div class="tab" onclick="switchTab('recibidos')">Recibidos</div>
+  <div class="tab" onclick="switchTab('historial')">Historial</div>
+  <div class="tab" onclick="switchTab('notas')">Notas</div>
+</div>
+
+<!-- ENVIAR -->
+<div class="section active" id="tab-enviar">
+  <label>Mensaje o link</label>
+  <textarea id="textInput" placeholder="Escribe algo, pega un link, una contraseña..."></textarea>
+
+  <label>Tipo de archivo</label>
+  <div class="filetypes">
+    <div class="ft sel" data-type="image/*" onclick="selectType(this,'image/*')">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+      <span>Imagen</span>
+    </div>
+    <div class="ft" data-type="application/pdf" onclick="selectType(this,'application/pdf')">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>
+      <span>PDF</span>
+    </div>
+    <div class="ft" data-type="video/*" onclick="selectType(this,'video/*')">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      <span>Video</span>
+    </div>
+    <div class="ft" data-type="audio/*" onclick="selectType(this,'audio/*')">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      <span>Audio</span>
+    </div>
+    <div class="ft" data-type=".doc,.docx" onclick="selectType(this,'.doc,.docx')">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+      <span>Word</span>
+    </div>
+    <div class="ft" data-type=".xls,.xlsx,.csv" onclick="selectType(this,'.xls,.xlsx,.csv')">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="11" y2="13"/><line x1="13" y1="13" x2="15" y2="13"/></svg>
+      <span>Excel</span>
+    </div>
+    <div class="ft" data-type=".zip,.rar,.7z" onclick="selectType(this,'.zip,.rar,.7z')">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      <span>ZIP</span>
+    </div>
+    <div class="ft" data-type="*" onclick="selectType(this,'*')">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+      <span>Otro</span>
+    </div>
+  </div>
+
+  <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+    <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Toca para seleccionar o arrastra un archivo
+  </div>
+  <input type="file" id="fileInput" onchange="handleFile(this.files[0])">
+
+  <div class="preview" id="preview" style="display:none">
+    <div class="preview-thumb" id="previewThumb"></div>
+    <div class="preview-info">
+      <div class="preview-name" id="previewName"></div>
+      <div class="preview-size" id="previewSize"></div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+    <button class="preview-remove" onclick="removeFile()">×</button>
+  </div>
+
+  <button class="btn" id="sendBtn" onclick="sendMessage()">
+    <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    Enviar al PC
+  </button>
+  <div class="status" id="status"></div>
+</div>
+
+<!-- RECIBIDOS (desde el PC) -->
+<div class="section" id="tab-recibidos">
+  <div id="recvList" class="recv-list"><div class="loader">Cargando mensajes del PC...</div></div>
+</div>
+
+<!-- HISTORIAL -->
+<div class="section" id="tab-historial">
+  <div id="historyList" class="history-list"><div class="loader">Cargando...</div></div>
+</div>
+
+<!-- NOTAS -->
+<div class="section" id="tab-notas">
+  <div class="notes-toolbar">
+    <input class="notes-search" id="notesSearch" type="text" placeholder="Buscar notas..." oninput="renderNotes()">
+    <button class="btn-new-note" onclick="openNoteForm()">+ Nueva</button>
+  </div>
+
+  <!-- Formulario -->
+  <div class="note-form" id="noteForm">
+    <input class="note-form-title" id="noteTitle" type="text" placeholder="Título (opcional)">
+    <textarea class="note-form-body" id="noteBody" placeholder="Escribe tu nota, recordatorio, contraseña temporal..."></textarea>
+    <div class="note-form-row">
+      <div class="note-colors" id="noteColors">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;">Color</span>
+        <div class="note-color-dot sel" data-color="#7c7fa8" style="background:#7c7fa8" onclick="selectNoteColor(this)"></div>
+        <div class="note-color-dot" data-color="#ef4444" style="background:#ef4444" onclick="selectNoteColor(this)"></div>
+        <div class="note-color-dot" data-color="#c4956a" style="background:#c4956a" onclick="selectNoteColor(this)"></div>
+        <div class="note-color-dot" data-color="#6a9e82" style="background:#6a9e82" onclick="selectNoteColor(this)"></div>
+        <div class="note-color-dot" data-color="#9b7ec8" style="background:#9b7ec8" onclick="selectNoteColor(this)"></div>
+      </div>
+      <div class="note-form-actions">
+        <button class="btn-cancel-note" onclick="closeNoteForm()">Cancelar</button>
+        <button class="btn-save-note" onclick="saveNote()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes-count" id="notesCount"></div>
+  <div class="notes-list" id="notesList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let db = null;
+let realtimeChannel = null;
+
+function initSupabase() {
+  const url = localStorage.getItem('supabase_url');
+  const key = localStorage.getItem('supabase_key');
+  
+  if (!url || !key) {
+    document.getElementById('settingsModal').style.display = 'flex';
+    document.getElementById('closeSettingsBtn').style.display = 'none';
+    return false;
+  }
+  
+  try {
+    // Si ya existe una instancia, no la recreamos innecesariamente
+    if (!db) {
+      db = supabase.createClient(url, key);
+    }
+    setupRealtime();
+    setupNotesRealtime();
+    return true;
+  } catch (err) {
+    console.error("Error al conectar a Supabase:", err);
+    // No borramos las claves, solo avisamos
+    showToast("❌ Error de conexión con Supabase");
+    return false;
+  }
+}
+
+function toggleSettingsModal(forceClose = false) {
+  const modal = document.getElementById('settingsModal');
+  const hasCreds = localStorage.getItem('supabase_url') && localStorage.getItem('supabase_key');
+  
+  if (modal.style.display === 'flex' || forceClose) {
+    if (!hasCreds && !forceClose) {
+      alert("Debes configurar Supabase para usar la aplicación.");
+      return;
+    }
+    modal.style.display = 'none';
+  } else {
+    document.getElementById('cfgUrl').value = localStorage.getItem('supabase_url') || '';
+    document.getElementById('cfgKey').value = localStorage.getItem('supabase_key') || '';
+    document.getElementById('closeSettingsBtn').style.display = hasCreds ? 'block' : 'none';
+    modal.style.display = 'flex';
+  }
+}
+
+function saveSettings() {
+  let url = document.getElementById('cfgUrl').value.trim();
+  const key = document.getElementById('cfgKey').value.trim();
+  const status = document.getElementById('cfgStatus');
+  
+  if (!url || !key) {
+    status.textContent = "Introduce ambos campos.";
+    status.className = "status err";
+    return;
+  }
+  
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
+  
+  localStorage.setItem('supabase_url', url);
+  localStorage.setItem('supabase_key', key);
+  status.textContent = "Conectando...";
+  status.className = "status ok";
+  
+  setTimeout(() => {
+    if (initSupabase()) {
+      document.getElementById('settingsModal').style.display = 'none';
+      showToast("✅ Supabase configurado");
+      status.textContent = "";
+      if (document.getElementById('tab-recibidos').classList.contains('active')) loadReceived();
+      if (document.getElementById('tab-historial').classList.contains('active')) loadHistory();
+    } else {
+      status.textContent = "Error de conexión.";
+      status.className = "status err";
+    }
+  }, 400);
+}
+
+let selectedFile = null;
+let currentAccept = 'image/*';
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active', ['enviar','recibidos','historial','notas'][i]===name));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='historial') loadHistory();
+  if(name==='recibidos') loadReceived();
+  if(name==='notas') loadNotes();
+}
+
+// ── NOTAS (Supabase — bidireccional) ──────────────────────────
+let editingNoteId = null;
+let selectedNoteColor = '#7c7fa8';
+let notesCache = [];           // caché local para renders instantáneos
+let notesRealtimeChannel = null;
+
+function openNoteForm(id) {
+  const form = document.getElementById('noteForm');
+  form.classList.add('open');
+  if(id) {
+    editingNoteId = id;
+    const note = notesCache.find(n => n.id === id);
+    if(!note) return;
+    document.getElementById('noteTitle').value = note.title || '';
+    document.getElementById('noteBody').value = note.body || '';
+    selectedNoteColor = note.color || '#7c7fa8';
+    document.querySelectorAll('.note-color-dot').forEach(d => {
+      d.classList.toggle('sel', d.dataset.color === selectedNoteColor);
+    });
+  } else {
+    editingNoteId = null;
+    document.getElementById('noteTitle').value = '';
+    document.getElementById('noteBody').value = '';
+    selectedNoteColor = '#7c7fa8';
+    document.querySelectorAll('.note-color-dot').forEach((d,i) => d.classList.toggle('sel', i===0));
+  }
+  document.getElementById('noteTitle').focus();
+}
+
+function closeNoteForm() {
+  document.getElementById('noteForm').classList.remove('open');
+  editingNoteId = null;
+}
+
+function selectNoteColor(el) {
+  selectedNoteColor = el.dataset.color;
+  document.querySelectorAll('.note-color-dot').forEach(d => d.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+async function saveNote() {
+  if(!db) { showToast('⚠️ Supabase no configurado'); return; }
+  const title = document.getElementById('noteTitle').value.trim();
+  const body  = document.getElementById('noteBody').value.trim();
+  if(!title && !body) { showToast('⚠️ Escribe algo primero'); return; }
+
+  const btn = document.querySelector('.btn-save-note');
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  try {
+    if(editingNoteId) {
+      const { error } = await db.from('notes').update({
+        title, body,
+        color: selectedNoteColor,
+        updated_at: new Date().toISOString()
+      }).eq('id', editingNoteId);
+      if(error) throw error;
+      showToast('✏️ Nota actualizada');
+    } else {
+      const { error } = await db.from('notes').insert([{
+        title: title || null,
+        body:  body  || null,
+        color: selectedNoteColor,
+        pinned: false
+      }]);
+      if(error) throw error;
+      showToast('📝 Nota guardada');
+    }
+    closeNoteForm();
+    await loadNotes();
+  } catch(err) {
+    showToast('❌ ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+  }
+}
+
+async function togglePin(id) {
+  if(!db) return;
+  const note = notesCache.find(n => n.id === id);
+  if(!note) return;
+  await db.from('notes').update({ pinned: !note.pinned }).eq('id', id);
+  await loadNotes();
+}
+
+async function deleteNote(id) {
+  if(!confirm('¿Eliminar esta nota?')) return;
+  if(!db) return;
+  await db.from('notes').delete().eq('id', id);
+  await loadNotes();
+  showToast('🗑️ Nota eliminada');
+}
+
+async function loadNotes() {
+  if(!db) {
+    renderNotes([]);
+    return;
+  }
+  const { data, error } = await db.from('notes').select('*').order('pinned', { ascending: false }).order('updated_at', { ascending: false });
+  if(!error && data) notesCache = data;
+  renderNotes();
+}
+
+function renderNotes() {
+  const el       = document.getElementById('notesList');
+  const countEl  = document.getElementById('notesCount');
+  const q        = (document.getElementById('notesSearch')?.value || '').toLowerCase();
+  let notes      = [...notesCache];
+
+  if(q) notes = notes.filter(n => ((n.title||'') + ' ' + (n.body||'')).toLowerCase().includes(q));
+
+  countEl.textContent = notes.length ? `${notes.length} nota${notes.length!==1?'s':''}` : '';
+
+  if(!notes.length) {
+    el.innerHTML = `<div class="notes-empty">${q ? 'Sin resultados' : 'No hay notas aún\nToca "+ Nueva" para crear una'}</div>`;
+    return;
+  }
+
+  el.innerHTML = notes.map(n => `
+    <div class="note-card" style="--note-color:${n.color||'var(--accent)'}">
+      <div class="note-card-header">
+        <div class="note-card-title">${escapeHtml(n.title||'')}</div>
+        ${n.pinned ? '<span class="note-pin-icon">📌</span>' : ''}
+      </div>
+      ${n.body ? `<div class="note-card-body">${escapeHtml(n.body)}</div>` : ''}
+      <div class="note-card-footer">
+        <div class="note-card-time">${timeAgo(n.updated_at||n.created_at)}</div>
+        <div class="note-card-actions">
+          <button class="note-action-btn" title="${n.pinned?'Desfijar':'Fijar'}" onclick="event.stopPropagation();togglePin(${n.id})">${n.pinned?'📌':'📍'}</button>
+          <button class="note-action-btn" title="Editar" onclick="event.stopPropagation();openNoteForm(${n.id})">✏️</button>
+          <button class="note-action-btn" title="Copiar" onclick="event.stopPropagation();copyText('${escapeAttr((n.title?(n.title+'\n'):'')+( n.body||''))}')">📋</button>
+          <button class="note-action-btn danger" title="Eliminar" onclick="event.stopPropagation();deleteNote(${n.id})">🗑️</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setupNotesRealtime() {
+  if(!db) return;
+  if(notesRealtimeChannel) db.removeChannel(notesRealtimeChannel);
+  notesRealtimeChannel = db.channel('notes-mobile')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, async () => {
+      await loadNotes();
+      if(document.getElementById('tab-notas').classList.contains('active')) {
+        showToast('🔄 Notas actualizadas');
+      }
+    });
+  notesRealtimeChannel.subscribe();
+}
+
+function selectType(el, accept) {
+  document.querySelectorAll('.ft').forEach(f=>{
+    f.classList.remove('sel');
+  });
+  el.classList.add('sel');
+  currentAccept = accept;
+  document.getElementById('fileInput').accept = accept === '*' ? '' : accept;
+  if(selectedFile) removeFile();
+}
+
+function handleFile(file) {
+  if(!file) return;
+  selectedFile = file;
+  const preview = document.getElementById('preview');
+  preview.style.display = 'flex';
+  document.getElementById('previewName').textContent = file.name;
+  document.getElementById('previewSize').textContent = formatSize(file.size);
+  document.getElementById('progressFill').style.width = '0%';
+  const thumb = document.getElementById('previewThumb');
+  if(file.type.startsWith('image/')) {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    thumb.innerHTML = '';
+    thumb.appendChild(img);
+  } else {
+    thumb.innerHTML = getFileEmoji(file.type, file.name);
+    thumb.style.fontSize = '22px';
+    thumb.style.textAlign = 'center';
+  }
+}
+
+function removeFile() {
+  selectedFile = null;
+  document.getElementById('preview').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+}
+
+function formatSize(bytes) {
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1048576).toFixed(1) + ' MB';
+}
+
+function getFileEmoji(type, name) {
+  if(type.startsWith('image/')) return '🖼️';
+  if(type.startsWith('video/')) return '🎬';
+  if(type.startsWith('audio/')) return '🎵';
+  if(type === 'application/pdf') return '📄';
+  if(name.match(/\.(doc|docx)$/i)) return '📝';
+  if(name.match(/\.(xls|xlsx|csv)$/i)) return '📊';
+  if(name.match(/\.(zip|rar|7z)$/i)) return '📦';
+  return '📎';
+}
+
+async function sendMessage() {
+  if (!db) {
+    setStatus('Supabase no está configurado', 'err');
+    toggleSettingsModal();
+    return;
+  }
+  const text = document.getElementById('textInput').value.trim();
+  if(!text && !selectedFile) {
+    setStatus('Escribe algo o selecciona un archivo', 'err'); return;
+  }
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Enviando...';
+  setStatus('', '');
+
+  try {
+    let fileUrl = null;
+    let fileName = null;
+    let fileType = null;
+
+    if(selectedFile) {
+      const ext = selectedFile.name.split('.').pop();
+      const path = `${Date.now()}_${selectedFile.name}`;
+      const { error: upErr } = await db.storage.from('uploads').upload(path, selectedFile);
+      if(upErr) throw upErr;
+      document.getElementById('progressFill').style.width = '70%';
+      const { data: urlData } = db.storage.from('uploads').getPublicUrl(path);
+      fileUrl = urlData.publicUrl;
+      fileName = selectedFile.name;
+      fileType = selectedFile.type || 'application/octet-stream';
+      document.getElementById('progressFill').style.width = '100%';
+    }
+
+    const { error } = await db.from('messages').insert([{
+      text: text || null,
+      image_url: fileUrl,
+      file_name: fileName,
+      file_type: fileType,
+      source: 'mobile'
+    }]);
+    if(error) throw error;
+
+    showToast('✅ ¡Enviado con éxito!');
+    document.getElementById('textInput').value = '';
+    removeFile();
+  } catch(err) {
+    setStatus('Error: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar al PC';
+  }
+}
+
+function setStatus(msg, type) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  s.className = 'status ' + type;
+}
+
+async function loadHistory() {
+  const el = document.getElementById('historyList');
+  if (!db) {
+    el.innerHTML = '<div class="empty">Supabase no está configurado. Haz clic en el engranaje ⚙️ para configurarlo.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="loader">Cargando...</div>';
+  const { data, error } = await db.from('messages').select('*').eq('source','mobile').order('created_at',{ascending:false}).limit(20);
+  if(error || !data?.length) { el.innerHTML = '<div class="empty">No has enviado nada todavía</div>'; return; }
+  
+  const deleteBtnHtml = `
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+      <button class="hitem-action" style="background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2);" onclick="deleteAllMessages()">🗑️ Borrar todo</button>
+    </div>
+  `;
+  
+  el.innerHTML = deleteBtnHtml + data.map(m => `
+    <div class="hitem">
+      <div class="hitem-icon" style="font-size:18px">${m.file_name ? getFileEmoji(m.file_type||'',m.file_name) : '💬'}</div>
+      <div class="hitem-info">
+        <div class="hitem-name">${m.file_name || m.text || '(sin texto)'}</div>
+        <div class="hitem-meta">${timeAgo(m.created_at)}</div>
+      </div>
+      ${m.image_url ? `<button class="hitem-action" onclick="window.open('${m.image_url}')">Abrir</button>` : ''}
+      ${!m.image_url && m.text ? `<button class="hitem-action" onclick="copyText('${escapeAttr(m.text)}')">Copiar</button>` : ''}
+    </div>
+  `).join('');
+}
+
+async function loadReceived() {
+  const el = document.getElementById('recvList');
+  if (!db) {
+    el.innerHTML = '<div class="empty">Supabase no está configurado. Haz clic en el engranaje ⚙️ para configurarlo.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="loader">Cargando mensajes del PC...</div>';
+  const { data, error } = await db.from('messages').select('*').eq('source','pc').order('created_at',{ascending:false}).limit(20);
+  if(error || !data?.length) { el.innerHTML = '<div class="empty">No hay mensajes del PC todavía</div>'; return; }
+  
+  const deleteBtnHtml = `
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+      <button class="recv-copy" style="background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); float: none;" onclick="deleteAllMessages()">🗑️ Borrar todo</button>
+    </div>
+  `;
+  
+  el.innerHTML = deleteBtnHtml + data.map(m => `
+    <div class="recv-item">
+      <button class="recv-copy" onclick="copyText('${escapeAttr(m.text||m.image_url||'')}')">Copiar</button>
+      ${m.text ? `<div class="recv-text">${escapeHtml(m.text)}</div>` : ''}
+      ${m.image_url && m.file_type?.startsWith('image/') ? `<img class="recv-img" src="${m.image_url}" loading="lazy">` : ''}
+      ${m.image_url && !m.file_type?.startsWith('image/') ? `<a class="recv-file-link" href="${m.image_url}" target="_blank">📎 ${m.file_name || 'Descargar archivo'}</a>` : ''}
+      <div class="recv-meta">${timeAgo(m.created_at)}</div>
+    </div>
+  `).join('');
+}
+
+async function deleteAllMessages() {
+  if (!db) return;
+  if (!confirm("¿Estás seguro de que deseas eliminar todo el historial de mensajes de la base de datos?")) return;
+  try {
+    const { error } = await db.from('messages').delete().neq('id', 0);
+    if (error) throw error;
+    showToast("🗑️ Todo eliminado");
+    if (document.getElementById('tab-recibidos').classList.contains('active')) loadReceived();
+    if (document.getElementById('tab-historial').classList.contains('active')) loadHistory();
+  } catch (err) {
+    showToast("❌ Error al eliminar: " + err.message);
+  }
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(()=>{ showToast('✅ Copiado al portapapeles'); });
+}
+
+function timeAgo(iso) {
+  const diff = (Date.now() - new Date(iso)) / 1000;
+  if(diff < 60) return 'hace un momento';
+  if(diff < 3600) return `hace ${Math.floor(diff/60)} min`;
+  if(diff < 86400) return `hace ${Math.floor(diff/3600)} h`;
+  return `hace ${Math.floor(diff/86400)} días`;
+}
+
+function escapeHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeAttr(t) { return t.replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+// Drag & drop
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+
+// Tiempo real: Avisar cuando llega algo del PC
+function setupRealtime() {
+  if (!db) return;
+  if (realtimeChannel) {
+    db.removeChannel(realtimeChannel);
+  }
+  realtimeChannel = db.channel('pc-to-mobile')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'source=eq.pc' }, payload => {
+      showToast('📩 Nuevo mensaje del PC');
+      if (document.getElementById('tab-recibidos').classList.contains('active')) loadReceived();
+    });
+  realtimeChannel.subscribe();
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-theme');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  updateThemeIcon();
+}
+
+function updateThemeIcon() {
+  const btn = document.getElementById('themeToggleBtn');
+  if (!btn) return;
+  const isLight = document.body.classList.contains('light-theme');
+  btn.innerHTML = isLight 
+    ? `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+    : `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+}
+
+// Inicialización
+window.addEventListener('DOMContentLoaded', () => {
+  // Register Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('SW registrado', reg))
+        .catch(err => console.log('SW error', err));
+    });
+  }
+
+  document.getElementById('cfgUrl').value = localStorage.getItem('supabase_url') || '';
+  document.getElementById('cfgKey').value = localStorage.getItem('supabase_key') || '';
+  updateThemeIcon();
+  initSupabase();
+});
+</script>
+</body>
+</html>

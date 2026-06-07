@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC Widget · Recibir del Móvil</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0a;
+    --card: #121216;
+    --border: #242432;
+    --bs-border-color: var(--border);
+    --bs-tertiary-bg: #161622;
+    --accent: #7c7fa8;
+    --accent2: #9b9ebf;
+    --progress: #c4956a;
+    --success: #6a9e82;
+    --danger: #ef4444;
+    --text: #ededf5;
+    --muted: #808092;
+    --new: rgba(124, 127, 168, 0.06);
+    --modal-overlay: rgba(15, 15, 19, 0.96);
+  }
+  body.light-theme {
+    --bg: #ffffff;
+    --card: #f8f9fa;
+    --border: #e2e8f0;
+    --bs-border-color: var(--border);
+    --bs-tertiary-bg: #edf2f7;
+    --accent: #7c7fa8;
+    --accent2: #5a5d85;
+    --progress: #c4956a;
+    --success: #6a9e82;
+    --danger: #ef4444;
+    --text: #1a202c;
+    --muted: #718096;
+    --new: rgba(124, 127, 168, 0.08);
+    --modal-overlay: rgba(255, 255, 255, 0.95);
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); width: 380px; min-height: 100vh; overflow-x: hidden; }
+
+  .header { padding: 1.25rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); z-index: 10; gap: 0.5rem; }
+  .header-left { display: flex; align-items: center; gap: 8px; }
+  .header-left h1 { font-size: 14px; font-weight: 700; }
+  .header-left span { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.05em; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); display: inline-block; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .refresh-btn { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 5px 12px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s; }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+  .tabs { display: flex; gap: 0.75rem; padding: 0.5rem 1rem 0; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 6px 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+  .panel { display: none; padding: 1.25rem 1rem; }
+  .panel.active { display: block; }
+
+  /* MENSAJES RECIBIDOS */
+  .msg-list { display: flex; flex-direction: column; gap: 12px; }
+  .msg {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    cursor: default;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.15s;
+  }
+  .msg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--progress);
+  }
+  .msg.new { border-color: var(--accent); background: var(--new); }
+  .msg:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--accent);
+  }
+  .msg-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+  .msg-icon { width: 32px; height: 32px; border-radius: 8px; background: rgba(124, 127, 168, 0.1); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .msg-meta { flex: 1; min-width: 0; }
+  .msg-source { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent2); font-weight: 700; letter-spacing: 0.05em; }
+  .msg-time { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.05em; }
+  .msg-text { font-size: 14px; line-height: 1.6; word-break: break-word; color: var(--text); margin-bottom: 6px; }
+  .msg-img { width: 100%; border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
+  .msg-img:hover { opacity: 0.9; }
+  .msg-file { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg); border-radius: 8px; margin-bottom: 6px; text-decoration: none; border: 1px solid var(--border); }
+  .msg-file span { font-size: 13px; color: var(--accent2); }
+  .msg-file small { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); display: block; }
+  .msg-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .action-btn { background: var(--bs-tertiary-bg); border: 1px solid var(--border); color: var(--text); border-radius: 20px; padding: 4px 10px; font-size: 10px; cursor: pointer; font-family: 'DM Mono', monospace; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 700; transition: all 0.2s; }
+  .action-btn:hover { background: var(--accent); border-color: var(--accent); color: white; }
+  .action-btn.danger { background: rgba(239,68,68,0.08); color: var(--danger); border-color: rgba(239,68,68,0.2); }
+  .action-btn.danger:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
+  /* ENVIAR AL MÓVIL */
+  label {
+    font-size: 10px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    font-weight: 700;
+  }
+  textarea {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 10px 12px;
+    resize: none;
+    height: 90px;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  .dropzone { border: 1.5px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; color: var(--muted); font-size: 13px; cursor: pointer; transition: all 0.2s; margin-bottom: 12px; background: rgba(255,255,255,0.01); }
+  .dropzone:hover, .dropzone.dragover { border-color: var(--accent); color: var(--accent2); }
+  input[type="file"] { display: none; }
+
+  .send-preview {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .send-preview::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--progress);
+  }
+  .send-preview:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .send-preview-name { flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .send-preview-size { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+  .remove-file-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; }
+
+  .btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+  .btn:hover { background: #6b6e94; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .send-status { margin-top: 10px; font-size: 13px; text-align: center; min-height: 20px; }
+  .send-status.ok { color: var(--success); }
+  .send-status.err { color: var(--danger); }
+
+  .empty { text-align: center; color: var(--muted); font-size: 14px; padding: 40px 16px; }
+  .badge { background: var(--accent); color: white; border-radius: 20px; font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 700; padding: 2px 6px; margin-left: 5px; display: inline-block; vertical-align: middle; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 10px 20px; border-radius: 20px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.05em; }
+  .toast.show { opacity: 1; }
+
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+  .settings-btn { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+  .settings-btn:hover { border-color: var(--accent); color: var(--accent2); background: rgba(255,255,255,0.02); }
+  .modal-input { width: 100%; background: var(--bg) !important; border: 1px solid var(--border) !important; border-radius: 10px !important; color: var(--text) !important; font-family: inherit; font-size: 13px !important; padding: 10px !important; margin-bottom: 14px !important; outline: none; transition: border-color 0.2s; }
+  .modal-input:focus { border-color: var(--accent) !important; }
+
+  /* ── NOTAS PC ─────────────────────────────────────── */
+  .notes-toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+  .notes-search { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 7px 11px; outline: none; transition: border-color 0.2s; }
+  .notes-search:focus { border-color: var(--accent); }
+  .notes-search::placeholder { color: var(--muted); }
+  .btn-new-note { background: var(--accent); border: none; border-radius: 8px; color: white; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; padding: 7px 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; letter-spacing: 0.03em; }
+  .btn-new-note:hover { background: #6b6e94; }
+
+  .note-form { background: var(--card); border: 1px solid var(--accent); border-radius: 10px; padding: 12px; margin-bottom: 12px; display: none; flex-direction: column; gap: 9px; }
+  .note-form.open { display: flex; }
+  .note-form-title { background: var(--bg); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 8px 11px; outline: none; width: 100%; transition: border-color 0.2s; }
+  .note-form-title:focus { border-color: var(--accent); }
+  .note-form-title::placeholder { color: var(--muted); font-weight: 400; }
+  .note-form-body { background: var(--bg); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 8px 11px; outline: none; resize: none; height: 70px; width: 100%; transition: border-color 0.2s; }
+  .note-form-body:focus { border-color: var(--accent); }
+  .note-form-body::placeholder { color: var(--muted); }
+  .note-form-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .note-colors { display: flex; gap: 6px; align-items: center; }
+  .note-color-dot { width: 17px; height: 17px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.15s, border-color 0.15s; flex-shrink: 0; }
+  .note-color-dot:hover { transform: scale(1.2); }
+  .note-color-dot.sel { border-color: var(--text); transform: scale(1.1); }
+  .note-form-actions { display: flex; gap: 7px; }
+  .btn-save-note { background: var(--accent); border: none; border-radius: 7px; color: white; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; padding: 7px 14px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.03em; }
+  .btn-save-note:hover { background: #6b6e94; }
+  .btn-cancel-note { background: none; border: 1px solid var(--border); border-radius: 7px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; padding: 7px 12px; cursor: pointer; transition: all 0.2s; }
+  .btn-cancel-note:hover { border-color: var(--accent); color: var(--accent); }
+
+  .notes-list { display: flex; flex-direction: column; gap: 9px; }
+  .note-card { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 11px 11px 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; overflow: hidden; }
+  .note-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--note-color, var(--accent)); border-radius: 10px 0 0 10px; }
+  .note-card:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.1); border-color: var(--accent); }
+  .note-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 7px; margin-bottom: 3px; }
+  .note-card-title { font-size: 12px; font-weight: 600; line-height: 1.3; flex: 1; word-break: break-word; }
+  .note-card-title:empty { display: none; }
+  .note-pin-icon { font-size: 11px; flex-shrink: 0; opacity: 0.7; }
+  .note-card-body { font-size: 11px; color: var(--muted); line-height: 1.5; word-break: break-word; white-space: pre-wrap; margin-bottom: 7px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .note-card-footer { display: flex; align-items: center; justify-content: space-between; }
+  .note-card-time { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  .note-card-actions { display: flex; gap: 3px; opacity: 0; transition: opacity 0.2s; }
+  .note-card:hover .note-card-actions { opacity: 1; }
+  .note-action-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 4px; transition: all 0.15s; line-height: 1; }
+  .note-action-btn:hover { color: var(--text); background: var(--border); }
+  .note-action-btn.danger:hover { color: var(--danger); }
+  .notes-count { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 8px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<script>
+  // Default to light theme if no preference is saved
+  if (localStorage.getItem('theme') !== 'dark') {
+    document.body.classList.add('light-theme');
+    localStorage.setItem('theme', 'light');
+  }
+</script>
+
+<div class="header pywebview-drag-region">
+  <div class="header-left">
+    <span class="dot"></span>
+    <div>
+      <h1>PC Widget</h1>
+      <span>Sincronizado con Samsung</span>
+    </div>
+  </div>
+  <div style="display: flex; gap: 6px; align-items: center;">
+    <button class="refresh-btn" onclick="loadMessages()">↺ Actualizar</button>
+    <button id="themeToggleBtn" class="settings-btn" onclick="toggleTheme()" title="Cambiar Tema">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <button id="pcSettingsBtn" class="settings-btn" onclick="toggleSettingsModal()" title="Configurar Supabase">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- CONFIGURACIÓN MODAL -->
+<div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-overlay); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 14px;">
+  <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 340px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;">
+    <h2 style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+      <span>Configurar Supabase</span>
+      <button id="closeSettingsBtn" onclick="toggleSettingsModal(true)" style="background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; line-height:1; display:none;">&times;</button>
+    </h2>
+    <p style="font-size: 11px; color: var(--muted); margin-bottom: 14px; line-height: 1.4;">Las credenciales se guardan localmente en tu navegador.</p>
+    
+    <label style="font-size: 10px;">Supabase Project URL</label>
+    <input type="text" id="cfgUrl" class="modal-input" placeholder="https://xxxxxxxxxxxxxx.supabase.co">
+    
+    <label style="font-size: 10px;">Supabase Anon Public Key</label>
+    <textarea id="cfgKey" class="modal-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="height: 70px; resize: none; margin-bottom: 14px !important;"></textarea>
+    
+    <button class="btn" onclick="saveSettings()">Guardar Configuración</button>
+    <div id="cfgStatus" style="margin-top: 8px; text-align: center; font-size: 12px; min-height: 16px;"></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('recibidos')">📱 Del móvil <span id="badge" class="badge" style="display:none">0</span></div>
+  <div class="tab" onclick="switchTab('enviar')">💻 Enviar al móvil</div>
+  <div class="tab" onclick="switchTab('notas')">📝 Notas</div>
+</div>
+
+<!-- RECIBIDOS DEL MÓVIL -->
+<div class="panel active" id="panel-recibidos">
+  <div id="msgList" class="msg-list"><div class="empty">Cargando...</div></div>
+</div>
+
+<!-- ENVIAR AL MÓVIL -->
+<div class="panel" id="panel-enviar">
+  <label>Mensaje o link</label>
+  <textarea id="pcText" placeholder="Escribe algo para enviar al móvil..."></textarea>
+  <label>Adjuntar archivo (opcional)</label>
+  <div class="dropzone" id="pcDropzone" onclick="document.getElementById('pcFile').click()">
+    ↑ Clic para seleccionar o arrastra aquí
+  </div>
+  <input type="file" id="pcFile" onchange="handlePcFile(this.files[0])">
+  <div id="pcPreview" style="display:none" class="send-preview">
+    <span style="font-size:20px" id="pcPreviewIcon">📎</span>
+    <div style="flex:1;min-width:0">
+      <div class="send-preview-name" id="pcPreviewName"></div>
+      <div class="send-preview-size" id="pcPreviewSize"></div>
+      <div class="progress-bar"><div class="progress-fill" id="pcProgress"></div></div>
+    </div>
+    <button class="remove-file-btn" onclick="removePcFile()">×</button>
+  </div>
+  <button class="btn" id="pcSendBtn" onclick="sendToMobile()">
+    <svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    Enviar al móvil
+  </button>
+  <div class="send-status" id="pcStatus"></div>
+</div>
+
+<!-- NOTAS -->
+<div class="panel" id="panel-notas">
+  <div class="notes-toolbar">
+    <input class="notes-search" id="pcNotesSearch" type="text" placeholder="Buscar notas..." oninput="pcRenderNotes()">
+    <button class="btn-new-note" onclick="pcOpenNoteForm()">+ Nueva</button>
+  </div>
+
+  <div class="note-form" id="pcNoteForm">
+    <input class="note-form-title" id="pcNoteTitle" type="text" placeholder="Título (opcional)">
+    <textarea class="note-form-body" id="pcNoteBody" placeholder="Escribe tu nota..."></textarea>
+    <div class="note-form-row">
+      <div class="note-colors" id="pcNoteColors">
+        <div class="note-color-dot sel" data-color="#7c7fa8" style="background:#7c7fa8" onclick="pcSelectColor(this)"></div>
+        <div class="note-color-dot" data-color="#ef4444" style="background:#ef4444" onclick="pcSelectColor(this)"></div>
+        <div class="note-color-dot" data-color="#c4956a" style="background:#c4956a" onclick="pcSelectColor(this)"></div>
+        <div class="note-color-dot" data-color="#6a9e82" style="background:#6a9e82" onclick="pcSelectColor(this)"></div>
+        <div class="note-color-dot" data-color="#9b7ec8" style="background:#9b7ec8" onclick="pcSelectColor(this)"></div>
+      </div>
+      <div class="note-form-actions">
+        <button class="btn-cancel-note" onclick="pcCloseNoteForm()">Cancelar</button>
+        <button class="btn-save-note" id="pcSaveNoteBtn" onclick="pcSaveNote()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes-count" id="pcNotesCount"></div>
+  <div class="notes-list" id="pcNotesList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let db = null;
+let realtimeChannel = null;
+
+function initSupabase() {
+  const url = localStorage.getItem('supabase_url');
+  const key = localStorage.getItem('supabase_key');
+  
+  if (!url || !key) {
+    document.getElementById('settingsModal').style.display = 'flex';
+    document.getElementById('closeSettingsBtn').style.display = 'none';
+    return false;
+  }
+  
+  try {
+    db = supabase.createClient(url, key);
+    setupRealtime();
+    setupNotesRealtime();
+    loadMessages();
+    return true;
+  } catch (err) {
+    console.error("Error al conectar a Supabase:", err);
+    showToast("❌ Error al conectar a Supabase");
+    document.getElementById('settingsModal').style.display = 'flex';
+    return false;
+  }
+}
+
+function toggleSettingsModal(forceClose = false) {
+  const modal = document.getElementById('settingsModal');
+  const hasCreds = localStorage.getItem('supabase_url') && localStorage.getItem('supabase_key');
+  
+  if (modal.style.display === 'flex' || forceClose) {
+    if (!hasCreds && !forceClose) {
+      alert("Debes configurar Supabase para usar la aplicación.");
+      return;
+    }
+    modal.style.display = 'none';
+  } else {
+    document.getElementById('cfgUrl').value = localStorage.getItem('supabase_url') || '';
+    document.getElementById('cfgKey').value = localStorage.getItem('supabase_key') || '';
+    document.getElementById('closeSettingsBtn').style.display = hasCreds ? 'block' : 'none';
+    modal.style.display = 'flex';
+  }
+}
+
+function saveSettings() {
+  let url = document.getElementById('cfgUrl').value.trim();
+  const key = document.getElementById('cfgKey').value.trim();
+  const status = document.getElementById('cfgStatus');
+  
+  if (!url || !key) {
+    status.textContent = "Introduce ambos campos.";
+    status.className = "send-status err";
+    return;
+  }
+  
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
+  
+  localStorage.setItem('supabase_url', url);
+  localStorage.setItem('supabase_key', key);
+  status.textContent = "Conectando...";
+  status.className = "send-status ok";
+  
+  setTimeout(() => {
+    if (initSupabase()) {
+      document.getElementById('settingsModal').style.display = 'none';
+      showToast("✅ Supabase configurado");
+      status.textContent = "";
+    } else {
+      status.textContent = "Error de conexión.";
+      status.className = "send-status err";
+    }
+  }, 400);
+}
+
+let seenIds = new Set();
+let pcFile = null;
+let pcNotesCache = [];
+let pcEditingNoteId = null;
+let pcSelectedColor = '#7c7fa8';
+let pcNotesRealtimeChannel = null;
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['recibidos','enviar','notas'][i] === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  if(name === 'notas') pcLoadNotes();
+}
+
+// ── NOTAS SUPABASE ──────────────────────────────────────────
+function pcOpenNoteForm(id) {
+  const form = document.getElementById('pcNoteForm');
+  form.classList.add('open');
+  if(id) {
+    pcEditingNoteId = id;
+    const note = pcNotesCache.find(n => n.id === id);
+    if(!note) return;
+    document.getElementById('pcNoteTitle').value = note.title || '';
+    document.getElementById('pcNoteBody').value = note.body || '';
+    pcSelectedColor = note.color || '#7c7fa8';
+    document.querySelectorAll('#pcNoteForm .note-color-dot').forEach(d => {
+      d.classList.toggle('sel', d.dataset.color === pcSelectedColor);
+    });
+  } else {
+    pcEditingNoteId = null;
+    document.getElementById('pcNoteTitle').value = '';
+    document.getElementById('pcNoteBody').value = '';
+    pcSelectedColor = '#7c7fa8';
+    document.querySelectorAll('#pcNoteForm .note-color-dot').forEach((d,i) => d.classList.toggle('sel', i===0));
+  }
+  document.getElementById('pcNoteTitle').focus();
+}
+
+function pcCloseNoteForm() {
+  document.getElementById('pcNoteForm').classList.remove('open');
+  pcEditingNoteId = null;
+}
+
+function pcSelectColor(el) {
+  pcSelectedColor = el.dataset.color;
+  document.querySelectorAll('#pcNoteForm .note-color-dot').forEach(d => d.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+async function pcSaveNote() {
+  if(!db) { showToast('⚠️ Supabase no configurado'); return; }
+  const title = document.getElementById('pcNoteTitle').value.trim();
+  const body  = document.getElementById('pcNoteBody').value.trim();
+  if(!title && !body) { showToast('⚠️ Escribe algo primero'); return; }
+
+  const btn = document.getElementById('pcSaveNoteBtn');
+  btn.disabled = true; btn.textContent = '...';
+
+  try {
+    if(pcEditingNoteId) {
+      const { error } = await db.from('notes').update({
+        title, body, color: pcSelectedColor,
+        updated_at: new Date().toISOString()
+      }).eq('id', pcEditingNoteId);
+      if(error) throw error;
+      showToast('✏️ Nota actualizada');
+    } else {
+      const { error } = await db.from('notes').insert([{
+        title: title || null, body: body || null,
+        color: pcSelectedColor, pinned: false
+      }]);
+      if(error) throw error;
+      showToast('📝 Nota guardada');
+    }
+    pcCloseNoteForm();
+    await pcLoadNotes();
+  } catch(err) {
+    showToast('❌ ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar';
+  }
+}
+
+async function pcTogglePin(id) {
+  if(!db) return;
+  const note = pcNotesCache.find(n => n.id === id);
+  if(!note) return;
+  await db.from('notes').update({ pinned: !note.pinned }).eq('id', id);
+  await pcLoadNotes();
+}
+
+async function pcDeleteNote(id) {
+  if(!confirm('¿Eliminar esta nota?')) return;
+  if(!db) return;
+  await db.from('notes').delete().eq('id', id);
+  await pcLoadNotes();
+  showToast('🗑️ Nota eliminada');
+}
+
+async function pcLoadNotes() {
+  if(!db) { pcRenderNotes(); return; }
+  const { data, error } = await db.from('notes').select('*')
+    .order('pinned', { ascending: false })
+    .order('updated_at', { ascending: false });
+  if(!error && data) pcNotesCache = data;
+  pcRenderNotes();
+}
+
+function pcRenderNotes() {
+  const el      = document.getElementById('pcNotesList');
+  const countEl = document.getElementById('pcNotesCount');
+  const q       = (document.getElementById('pcNotesSearch')?.value || '').toLowerCase();
+  let notes     = [...pcNotesCache];
+
+  if(q) notes = notes.filter(n => ((n.title||'') + ' ' + (n.body||'')).toLowerCase().includes(q));
+
+  countEl.textContent = notes.length ? `${notes.length} nota${notes.length!==1?'s':''}` : '';
+
+  if(!notes.length) {
+    el.innerHTML = `<div class="empty" style="padding:30px 0">${q ? 'Sin resultados' : 'No hay notas aún.<br>Crea una aquí o desde el móvil.'}</div>`;
+    return;
+  }
+
+  el.innerHTML = notes.map(n => `
+    <div class="note-card" style="--note-color:${n.color||'var(--accent)'}">
+      <div class="note-card-header">
+        <div class="note-card-title">${escHtml(n.title||'')}</div>
+        ${n.pinned ? '<span class="note-pin-icon">📌</span>' : ''}
+      </div>
+      ${n.body ? `<div class="note-card-body">${escHtml(n.body)}</div>` : ''}
+      <div class="note-card-footer">
+        <div class="note-card-time">${timeAgo(n.updated_at||n.created_at)}</div>
+        <div class="note-card-actions">
+          <button class="note-action-btn" title="${n.pinned?'Desfijar':'Fijar'}" onclick="event.stopPropagation();pcTogglePin(${n.id})">${n.pinned?'📌':'📍'}</button>
+          <button class="note-action-btn" title="Editar" onclick="event.stopPropagation();pcOpenNoteForm(${n.id})">✏️</button>
+          <button class="note-action-btn" title="Copiar" onclick="event.stopPropagation();copyText('${escAttr((n.title?(n.title+'\n'):'')+( n.body||''))}')">📋</button>
+          <button class="note-action-btn danger" title="Eliminar" onclick="event.stopPropagation();pcDeleteNote(${n.id})">🗑️</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setupNotesRealtime() {
+  if(!db) return;
+  if(pcNotesRealtimeChannel) db.removeChannel(pcNotesRealtimeChannel);
+  pcNotesRealtimeChannel = db.channel('notes-pc')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, async () => {
+      await pcLoadNotes();
+      if(document.getElementById('panel-notas').classList.contains('active')) {
+        showToast('🔄 Notas sincronizadas');
+      }
+    });
+  pcNotesRealtimeChannel.subscribe();
+}
+
+async function loadMessages() {
+  const el = document.getElementById('msgList');
+  if (!db) {
+    el.innerHTML = '<div class="empty">Supabase no está configurado. Haz clic en el engranaje ⚙️.</div>';
+    return;
+  }
+  const { data, error } = await db.from('messages').select('*').eq('source','mobile').order('created_at',{ascending:false}).limit(30);
+  if(error) { el.innerHTML = '<div class="empty">Error al cargar: '+error.message+'</div>'; return; }
+  if(!data?.length) { el.innerHTML = '<div class="empty">Nada recibido todavía.<br><small>Abre index.html en el Samsung y envía algo.</small></div>'; return; }
+
+  const newCount = data.filter(m=>!seenIds.has(m.id)).length;
+  data.forEach(m=>seenIds.add(m.id));
+  if(newCount > 0 && el.querySelector('.empty') === null) showToast(`${newCount} mensaje${newCount>1?'s':''} nuevo${newCount>1?'s':''}`);
+
+  const badge = document.getElementById('badge');
+  badge.style.display = newCount ? 'inline-block' : 'none';
+  badge.textContent = newCount;
+
+  const deleteBtnHtml = `
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 12px; padding: 0 4px;">
+      <button class="action-btn danger" onclick="deleteAllMessages()">🗑️ Borrar todo</button>
+    </div>
+  `;
+
+  el.innerHTML = deleteBtnHtml + data.map(m => `
+    <div class="msg ${!seenIds.has(m.id)?'new':''}">
+      <div class="msg-top">
+        <div class="msg-icon">${m.file_name ? getEmoji(m.file_type||'',m.file_name) : '💬'}</div>
+        <div class="msg-meta">
+          <div class="msg-source">📱 Samsung</div>
+          <div class="msg-time">${timeAgo(m.created_at)}</div>
+        </div>
+      </div>
+      ${m.text ? `<div class="msg-text">${escHtml(m.text)}</div>` : ''}
+      ${m.image_url && m.file_type?.startsWith('image/') ? `<img class="msg-img" src="${m.image_url}" loading="lazy" onclick="window.open('${m.image_url}')">` : ''}
+      ${m.image_url && m.file_name && !m.file_type?.startsWith('image/') ? `
+        <a class="msg-file" href="${m.image_url}" target="_blank">
+          <span style="font-size:22px">${getEmoji(m.file_type||'',m.file_name)}</span>
+          <div><span>${m.file_name}</span><small>Clic para abrir/descargar</small></div>
+        </a>` : ''}
+      <div class="msg-actions">
+        ${m.text ? `<button class="action-btn" onclick="copyText('${escAttr(m.text)}')">📋 Copiar texto</button>` : ''}
+        ${m.image_url ? `<button class="action-btn" onclick="window.open('${m.image_url}')">⬇️ Descargar</button>` : ''}
+        <button class="action-btn danger" onclick="deleteMsg(${m.id}, this)">🗑️ Borrar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function deleteMsg(id, btn) {
+  if (!db) return;
+  btn.closest('.msg').style.opacity = '0.4';
+  await db.from('messages').delete().eq('id', id);
+  await loadMessages();
+}
+
+async function deleteAllMessages() {
+  if (!db) return;
+  if (!confirm("¿Estás seguro de que deseas eliminar todo el historial de mensajes de la base de datos?")) return;
+  try {
+    const { error } = await db.from('messages').delete().neq('id', 0);
+    if (error) throw error;
+    showToast("🗑️ Todo eliminado");
+    await loadMessages();
+  } catch (err) {
+    showToast("❌ Error al eliminar: " + err.message);
+  }
+}
+
+function handlePcFile(file) {
+  if(!file) return;
+  pcFile = file;
+  document.getElementById('pcPreview').style.display = 'flex';
+  document.getElementById('pcPreviewName').textContent = file.name;
+  document.getElementById('pcPreviewSize').textContent = formatSize(file.size);
+  document.getElementById('pcPreviewIcon').textContent = getEmoji(file.type, file.name);
+  document.getElementById('pcProgress').style.width = '0%';
+}
+
+function removePcFile() { pcFile = null; document.getElementById('pcPreview').style.display = 'none'; document.getElementById('pcFile').value=''; }
+
+async function sendToMobile() {
+  if (!db) {
+    setPcStatus('Supabase no está configurado', 'err');
+    toggleSettingsModal();
+    return;
+  }
+  const text = document.getElementById('pcText').value.trim();
+  if(!text && !pcFile) { setPcStatus('Escribe algo o selecciona un archivo','err'); return; }
+  const btn = document.getElementById('pcSendBtn');
+  btn.disabled = true;
+  setPcStatus('','');
+
+  try {
+    let fileUrl = null, fileName = null, fileType = null;
+    if(pcFile) {
+      const path = `${Date.now()}_${pcFile.name}`;
+      const { error: upErr } = await db.storage.from('uploads').upload(path, pcFile);
+      if(upErr) throw upErr;
+      document.getElementById('pcProgress').style.width = '80%';
+      const { data: urlData } = db.storage.from('uploads').getPublicUrl(path);
+      fileUrl = urlData.publicUrl;
+      fileName = pcFile.name;
+      fileType = pcFile.type;
+      document.getElementById('pcProgress').style.width = '100%';
+    }
+    const { error } = await db.from('messages').insert([{ text: text||null, image_url: fileUrl, file_name: fileName, file_type: fileType, source: 'pc' }]);
+    if(error) throw error;
+    setPcStatus('✅ Enviado al móvil','ok');
+    document.getElementById('pcText').value = '';
+    removePcFile();
+    setTimeout(()=>setPcStatus('',''),5000);
+  } catch(err) {
+    setPcStatus('Error: '+err.message,'err');
+  } finally { btn.disabled = false; }
+}
+
+function setPcStatus(msg,type) { const s=document.getElementById('pcStatus'); s.textContent=msg; s.className='send-status '+type; }
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(()=>showToast('Copiado al portapapeles'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+function getEmoji(type, name) {
+  if(type.startsWith('image/')) return '🖼️';
+  if(type.startsWith('video/')) return '🎬';
+  if(type.startsWith('audio/')) return '🎵';
+  if(type==='application/pdf') return '📄';
+  if(name.match(/\.(doc|docx)$/i)) return '📝';
+  if(name.match(/\.(xls|xlsx|csv)$/i)) return '📊';
+  if(name.match(/\.(zip|rar|7z)$/i)) return '📦';
+  return '📎';
+}
+
+function formatSize(b) { if(b<1024)return b+' B'; if(b<1048576)return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
+function timeAgo(iso) { const d=(Date.now()-new Date(iso))/1000; if(d<60)return 'hace un momento'; if(d<3600)return `hace ${Math.floor(d/60)} min`; if(d<86400)return `hace ${Math.floor(d/3600)} h`; return `hace ${Math.floor(d/86400)} días`; }
+function escHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(t) { return t.replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+// Drag & drop en el panel de enviar
+const dz = document.getElementById('pcDropzone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files[0])handlePcFile(e.dataTransfer.files[0])});
+
+function setupRealtime() {
+  if (!db) return;
+  if (realtimeChannel) {
+    db.removeChannel(realtimeChannel);
+  }
+  realtimeChannel = db.channel('messages-channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'source=eq.mobile' }, () => loadMessages());
+  realtimeChannel.subscribe();
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-theme');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  updateThemeIcon();
+}
+
+function updateThemeIcon() {
+  const btn = document.getElementById('themeToggleBtn');
+  if (!btn) return;
+  const isLight = document.body.classList.contains('light-theme');
+  btn.innerHTML = isLight 
+    ? `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+    : `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+}
+
+// Inicialización al cargar la página
+window.addEventListener('DOMContentLoaded', () => {
+  // Register Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('SW registrado', reg))
+        .catch(err => console.log('SW error', err));
+    });
+  }
+
+  document.getElementById('cfgUrl').value = localStorage.getItem('supabase_url') || '';
+  document.getElementById('cfgKey').value = localStorage.getItem('supabase_key') || '';
+  updateThemeIcon();
+  initSupabase();
+  
+  // Auto-refresh cada 30 segundos como fallback
+  setInterval(() => {
+    if (db) loadMessages();
+  }, 30000);
+});
+</script>
+</body>
+</html>
