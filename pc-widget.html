@@ -673,8 +673,6 @@ function switchTab(name) {
   if(name==='notas') { pcLoadNotes(); }
 }
 
-async function loadMessages() {
-  const el = document.getElementById('msgList');
 function getFileBadge(type, name) {
   let label = 'FILE';
   if (type.startsWith('image/')) label = 'IMG';
