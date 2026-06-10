@@ -224,6 +224,7 @@
     border-color: var(--accent);
   }
   .recv-text { font-size: 14px; line-height: 1.5; margin-bottom: 6px; word-break: break-word; }
+  .msg-code { font-family: 'DM Mono', monospace; font-size: 11px; background: var(--bs-tertiary-bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; white-space: pre; overflow-x: auto; text-align: left; margin: 8px 0; max-height: 250px; box-sizing: border-box; width: 100%; display: block; }
   .recv-meta { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.05em; }
   .recv-img { width: 100%; border-radius: 8px; margin-top: 8px; }
   .recv-copy { float: right; background: var(--bs-tertiary-bg); border: 1px solid var(--border); color: var(--text); border-radius: 20px; padding: 4px 12px; font-size: 10px; cursor: pointer; font-family: 'DM Mono', monospace; letter-spacing: 0.05em; transition: all 0.2s; text-transform: uppercase; font-weight: 700; }
@@ -1407,6 +1408,9 @@ async function loadReceived() {
     if(error) throw error;
     if(!data?.length) { el.innerHTML = '<div class="empty">No hay mensajes del PC todavía</div>'; return; }
     
+    // Store in map for safe copy
+    data.forEach(m => { _msgStore[m.id] = m.text || m.image_url || ''; });
+
     const deleteBtnHtml = `
       <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
         <button class="recv-copy" style="background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); float: none;" onclick="deleteAllMessages()">Borrar todo</button>
@@ -1415,8 +1419,8 @@ async function loadReceived() {
     
     el.innerHTML = deleteBtnHtml + data.map(m => `
       <div class="recv-item">
-        <button class="recv-copy" onclick="copyText('${escapeAttr(m.text||m.image_url||'')}')">Copiar</button>
-        ${m.text ? `<div class="recv-text">${escapeHtml(m.text)}</div>` : ''}
+        <button class="recv-copy" onclick="copyById(${m.id})">Copiar</button>
+        ${m.text ? (m.category === 'codigo' ? `<pre class="msg-code"><code>${escapeHtml(m.text)}</code></pre>` : `<div class="recv-text">${escapeHtml(m.text)}</div>`) : ''}
         ${m.image_url && m.file_type?.startsWith('image/') ? `<img class="recv-img" src="${m.image_url}" loading="lazy">` : ''}
         ${m.image_url && !m.file_type?.startsWith('image/') ? `<a class="recv-file-link" href="${m.image_url}" target="_blank">${m.file_name || 'Descargar archivo'}</a>` : ''}
         <div class="recv-meta">${timeAgo(m.created_at)}</div>

@@ -1,11 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PC Widget · Recibir del Móvil</title>
+<title>PC Widget Â· Recibir del MÃ³vil</title>
 <link rel="manifest" href="manifest.json">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -102,7 +101,6 @@
   .msg-source { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent2); font-weight: 700; letter-spacing: 0.05em; }
   .msg-time { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.05em; }
   .msg-text { font-size: 14px; line-height: 1.6; word-break: break-word; color: var(--text); margin-bottom: 6px; }
-  .msg-code { font-family: 'DM Mono', monospace; font-size: 11px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; white-space: pre; overflow-x: auto; text-align: left; margin: 8px 0; max-height: 250px; box-sizing: border-box; width: 100%; display: block; }
   .msg-img { width: 100%; border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
   .msg-img:hover { opacity: 0.9; }
   .msg-file { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg); border-radius: 8px; margin-bottom: 6px; text-decoration: none; border: 1px solid var(--border); }
@@ -114,7 +112,7 @@
   .action-btn.danger { background: rgba(239,68,68,0.08); color: var(--danger); border-color: rgba(239,68,68,0.2); }
   .action-btn.danger:hover { background: var(--danger); color: white; border-color: var(--danger); }
 
-  /* ENVIAR AL MÓVIL */
+  /* ENVIAR AL MÃ“VIL */
   label {
     font-size: 10px;
     color: var(--muted);
@@ -125,12 +123,6 @@
     font-family: 'DM Mono', monospace;
     font-weight: 700;
   }
-  .cat-row { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
-  .cat-chip { display: flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 20px; border: 1.5px solid var(--border); background: none; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; transition: all 0.18s; }
-  .cat-chip:hover { border-color: var(--accent); color: var(--text); }
-  .cat-chip.sel { color: white; border-color: transparent; }
-  .cat-chip .cat-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-  
   textarea {
     width: 100%;
     background: var(--card);
@@ -202,7 +194,7 @@
   .modal-input { width: 100%; background: var(--bg) !important; border: 1px solid var(--border) !important; border-radius: 10px !important; color: var(--text) !important; font-family: inherit; font-size: 13px !important; padding: 10px !important; margin-bottom: 14px !important; outline: none; transition: border-color 0.2s; }
   .modal-input:focus { border-color: var(--accent) !important; }
 
-  /* ── VAULT ─────────────────────────────────────── */
+  /* â”€â”€ VAULT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .vault-toolbar { display:flex; gap:8px; margin-bottom:12px; align-items:center; }
   .vault-search {
     flex:1; background:var(--bg); border:1px solid var(--border);
@@ -314,7 +306,7 @@
   .vault-save-btn:hover { background:#6b6e94; }
   .vault-empty { text-align:center;color:var(--muted);font-size:12px;padding:30px 0; }
   .vault-count { font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px; }
-  /* ── NOTAS PC ─────────────────────────────────────── */
+  /* â”€â”€ NOTAS PC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .notes-toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
   .notes-search { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 7px 11px; outline: none; transition: border-color 0.2s; }
   .notes-search:focus { border-color: var(--accent); }
@@ -427,7 +419,7 @@
     </div>
   </div>
   <div style="display: flex; gap: 6px; align-items: center;">
-    <button class="refresh-btn" onclick="loadMessages()">↺ Actualizar</button>
+    <button class="refresh-btn" onclick="loadMessages()">â†º Actualizar</button>
     <button id="themeToggleBtn" class="settings-btn" onclick="toggleTheme()" title="Cambiar Tema">
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
@@ -437,7 +429,7 @@
   </div>
 </div>
 
-<!-- CONFIGURACIÓN MODAL -->
+<!-- CONFIGURACIÃ“N MODAL -->
 <div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-overlay); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 14px;">
   <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 340px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative;">
     <h2 style="font-size: 14px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
@@ -452,39 +444,30 @@
     <label style="font-size: 10px;">Supabase Anon Public Key</label>
     <textarea id="cfgKey" class="modal-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="height: 70px; resize: none; margin-bottom: 14px !important;"></textarea>
     
-    <button class="btn" onclick="saveSettings()">Guardar Configuración</button>
+    <button class="btn" onclick="saveSettings()">Guardar ConfiguraciÃ³n</button>
     <div id="cfgStatus" style="margin-top: 8px; text-align: center; font-size: 12px; min-height: 16px;"></div>
   </div>
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('recibidos')">Del móvil <span id="badge" class="badge" style="display:none">0</span></div>
-  <div class="tab" onclick="switchTab('enviar')">Enviar al móvil</div>
+  <div class="tab active" onclick="switchTab('recibidos')">Del mÃ³vil <span id="badge" class="badge" style="display:none">0</span></div>
+  <div class="tab" onclick="switchTab('enviar')">Enviar al mÃ³vil</div>
   <div class="tab" onclick="switchTab('vault')">Vault</div>
   <div class="tab" onclick="switchTab('notas')">Notas</div>
 </div>
 
-<!-- RECIBIDOS DEL MÓVIL -->
+<!-- RECIBIDOS DEL MÃ“VIL -->
 <div class="panel active" id="panel-recibidos">
   <div id="msgList" class="msg-list"><div class="empty">Cargando...</div></div>
 </div>
 
-<!-- ENVIAR AL MÓVIL -->
+<!-- ENVIAR AL MÃ“VIL -->
 <div class="panel" id="panel-enviar">
-  <label>Categoría</label>
-  <div class="cat-row" id="pcCatRow">
-    <button class="cat-chip sel" data-cat="general"    data-color="#7c7fa8" style="background:#7c7fa8"    onclick="pcSelectCat(this)"><span class="cat-dot"></span>General</button>
-    <button class="cat-chip"     data-cat="link"       data-color="#3b82f6" style=""                      onclick="pcSelectCat(this)"><span class="cat-dot" style="background:#3b82f6"></span>Link</button>
-    <button class="cat-chip"     data-cat="nota"       data-color="#6a9e82" style=""                      onclick="pcSelectCat(this)"><span class="cat-dot" style="background:#6a9e82"></span>Nota</button>
-    <button class="cat-chip"     data-cat="contraseña" data-color="#ef4444" style=""                      onclick="pcSelectCat(this)"><span class="cat-dot" style="background:#ef4444"></span>Contraseña</button>
-    <button class="cat-chip"     data-cat="codigo"     data-color="#c4956a" style=""                      onclick="pcSelectCat(this)"><span class="cat-dot" style="background:#c4956a"></span>Código</button>
-  </div>
-
   <label>Mensaje o link</label>
-  <textarea id="pcText" placeholder="Escribe algo para enviar al móvil..."></textarea>
+  <textarea id="pcText" placeholder="Escribe algo para enviar al mÃ³vil..."></textarea>
   <label>Adjuntar archivo (opcional)</label>
   <div class="dropzone" id="pcDropzone" onclick="document.getElementById('pcFile').click()">
-    ↑ Clic para seleccionar o arrastra aquí
+    â†‘ Clic para seleccionar o arrastra aquÃ­
   </div>
   <input type="file" id="pcFile" onchange="handlePcFile(this.files[0])">
   <div id="pcPreview" style="display:none" class="send-preview">
@@ -494,11 +477,11 @@
       <div class="send-preview-size" id="pcPreviewSize"></div>
       <div class="progress-bar"><div class="progress-fill" id="pcProgress"></div></div>
     </div>
-    <button class="remove-file-btn" onclick="removePcFile()">×</button>
+    <button class="remove-file-btn" onclick="removePcFile()">Ã—</button>
   </div>
   <button class="btn" id="pcSendBtn" onclick="sendToMobile()">
     <svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-    Enviar al móvil
+    Enviar al mÃ³vil
   </button>
   <div class="send-status" id="pcStatus"></div>
 </div>
@@ -511,12 +494,12 @@
   <div class="vault-bw-status">
     <div class="vault-bw-dot" id="bwDot"></div>
     <span id="bwStatusText">Comprobando Bitwarden CLI...</span>
-    <button style="margin-left:auto;background:none;border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;" onclick="checkBwStatus()">↺ Verificar</button>
+    <button style="margin-left:auto;background:none;border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;" onclick="checkBwStatus()">â†º Verificar</button>
   </div>
 
   <div class="vault-toolbar">
     <input class="vault-search" id="vaultSearch" type="text" placeholder="Buscar nombre, usuario, URL..." oninput="renderVault()">
-    <button class="vault-sync-btn" id="vaultSyncBtn" onclick="syncFromBitwarden()">⟳ Sync BW</button>
+    <button class="vault-sync-btn" id="vaultSyncBtn" onclick="syncFromBitwarden()">âŸ³ Sync BW</button>
     <button class="vault-add-btn" onclick="openVaultForm()">+ Nueva</button>
   </div>
 
@@ -544,10 +527,10 @@
       <input class="vault-input" id="vfUser" type="text" placeholder="usuario@email.com">
     </div>
     <div class="vault-field">
-      <label>Contraseña</label>
+      <label>ContraseÃ±a</label>
       <div class="vault-pass-wrap">
-        <input class="vault-input" id="vfPass" type="password" placeholder="••••••••">
-        <button class="vault-pass-eye" onclick="toggleVfPass()" title="Mostrar/ocultar">👁</button>
+        <input class="vault-input" id="vfPass" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
+        <button class="vault-pass-eye" onclick="toggleVfPass()" title="Mostrar/ocultar">ðŸ‘</button>
       </div>
     </div>
     <div class="vault-field">
@@ -573,7 +556,7 @@
   </div>
 
   <div class="note-form" id="pcNoteForm">
-    <input class="note-form-title" id="pcNoteTitle" type="text" placeholder="Título (opcional)">
+    <input class="note-form-title" id="pcNoteTitle" type="text" placeholder="TÃ­tulo (opcional)">
     <textarea class="note-form-body" id="pcNoteBody" placeholder="Escribe tu nota..."></textarea>
     <div class="note-form-row">
       <div class="note-colors" id="pcNoteColors">
@@ -600,29 +583,7 @@
 let db = null;
 let realtimeChannel = null;
 
-function initSupabase() {
-  const url = localStorage.getItem('supabase_url');
-  const key = localStorage.getItem('supabase_key');
-  
-  if (!url || !key) {
-    document.getElementById('settingsModal').style.display = 'flex';
-    document.getElementById('closeSettingsBtn').style.display = 'none';
-    return false;
-  }
-  
-  try {
-    db = supabase.createClient(url, key);
-    setupRealtime();
-    setupNotesRealtime();
-    loadMessages();
-    return true;
-  } catch (err) {
-    console.error("Error al conectar a Supabase:", err);
-    showToast("❌ Error al conectar a Supabase");
-    document.getElementById('settingsModal').style.display = 'flex';
-    return false;
-  }
-}
+function initSupabase() { document.getElementById('settingsBtn').style.display = 'none'; setupRealtime(); return true; }
 
 function toggleSettingsModal(forceClose = false) {
   const modal = document.getElementById('settingsModal');
@@ -630,7 +591,7 @@ function toggleSettingsModal(forceClose = false) {
   
   if (modal.style.display === 'flex' || forceClose) {
     if (!hasCreds && !forceClose) {
-      alert("Debes configurar Supabase para usar la aplicación.");
+      alert("Debes configurar Supabase para usar la aplicaciÃ³n.");
       return;
     }
     modal.style.display = 'none';
@@ -665,36 +626,21 @@ function saveSettings() {
   setTimeout(() => {
     if (initSupabase()) {
       document.getElementById('settingsModal').style.display = 'none';
-      showToast("✅ Supabase configurado");
+      showToast("âœ… Supabase configurado");
       status.textContent = "";
     } else {
-      status.textContent = "Error de conexión.";
+      status.textContent = "Error de conexiÃ³n.";
       status.className = "send-status err";
     }
   }, 400);
 }
 
 let seenIds = new Set();
-let pcMsgStore = {};
 let pcFile = null;
 let pcNotesCache = [];
 let pcEditingNoteId = null;
 let pcSelectedColor = '#7c7fa8';
 let pcNotesRealtimeChannel = null;
-
-function pcSelectCat(el) {
-  document.querySelectorAll('#pcCatRow .cat-chip').forEach(c => {
-    c.classList.remove('sel');
-    c.style.background = '';
-  });
-  el.classList.add('sel');
-  el.style.background = el.dataset.color;
-}
-
-function copyPcMsgById(id) {
-  const text = pcMsgStore[id] || '';
-  navigator.clipboard.writeText(text).then(() => showToast('Copiado al portapapeles'));
-}
 
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['recibidos','enviar','vault','notas'][i]===name));
@@ -716,82 +662,16 @@ function getFileBadge(type, name) {
   return `<span class="tech-badge">${label}</span>`;
 }
 
-async function loadMessages() {
-  const el = document.getElementById('msgList');
-  if (!db) {
-    el.innerHTML = '<div class="empty">Supabase no está configurado. Haz clic en el icono de configuración.</div>';
-    return;
-  }
-  try {
-    const { data, error } = await db.from('messages').select('*').eq('source','mobile').order('created_at',{ascending:false}).limit(30);
-    if(error) throw error;
-    if(!data?.length) { el.innerHTML = '<div class="empty">Nada recibido todavía.<br><small>Abre el widget en tu móvil y envía algo.</small></div>'; return; }
-
-    // Store in map for safe copy
-    data.forEach(m => { pcMsgStore[m.id] = m.text || m.image_url || ''; });
-
-    const newCount = data.filter(m=>!seenIds.has(m.id)).length;
-    data.forEach(m=>seenIds.add(m.id));
-    if(newCount > 0 && el.querySelector('.empty') === null) showToast(`${newCount} mensaje${newCount>1?'s':''} nuevo${newCount>1?'s':''}`);
-
-    const badge = document.getElementById('badge');
-    badge.style.display = newCount ? 'inline-block' : 'none';
-    badge.textContent = newCount;
-
-    const deleteBtnHtml = `
-      <div style="display: flex; justify-content: flex-end; margin-bottom: 12px; padding: 0 4px;">
-        <button class="action-btn danger" onclick="deleteAllMessages()">Borrar todo</button>
-      </div>
-    `;
-
-    el.innerHTML = deleteBtnHtml + data.map(m => `
-      <div class="msg ${!seenIds.has(m.id)?'new':''}">
-        <div class="msg-top">
-          <div class="msg-icon" style="font-size:12px">${m.file_name ? getFileBadge(m.file_type||'',m.file_name) : '<span class="tech-badge">TXT</span>'}</div>
-          <div class="msg-meta">
-            <div class="msg-source">Móvil</div>
-            <div class="msg-time">${timeAgo(m.created_at)}</div>
-          </div>
-        </div>
-        ${m.text ? (m.category === 'codigo' ? `<pre class="msg-code"><code>${escHtml(m.text)}</code></pre>` : `<div class="msg-text">${escHtml(m.text)}</div>`) : ''}
-        ${m.image_url && m.file_type?.startsWith('image/') ? `<img class="msg-img" src="${m.image_url}" loading="lazy" onclick="window.open('${m.image_url}')">` : ''}
-        ${m.image_url && m.file_name && !m.file_type?.startsWith('image/') ? `
-          <a class="msg-file" href="${m.image_url}" target="_blank">
-            ${getFileBadge(m.file_type||'',m.file_name)}
-            <div><span>${m.file_name}</span><small>Clic para abrir/descargar</small></div>
-          </a>` : ''}
-        <div class="msg-actions">
-          ${m.text ? `<button class="action-btn" onclick="copyPcMsgById(${m.id})">Copiar</button>` : ''}
-          ${m.image_url ? `<button class="action-btn" onclick="window.open('${m.image_url}')">Descargar</button>` : ''}
-          <button class="action-btn danger" onclick="deleteMsg(${m.id}, this)">Borrar</button>
-        </div>
-      </div>
-    `).join('');
-  } catch(err) {
+async function loadMessages() { const el = document.getElementById('msgList'); el.innerHTML = '<div class="loader">Cargando...</div>'; try { const res = await fetch("/api/messages?source_filter=mobile"); const data = await res.json(); if(!data?.length) { el.innerHTML = '<div class="empty">No hay mensajes del móvil todavía</div>'; return; } el.innerHTML = data.map(m => `<div class="msg"><button class="msg-action-btn" style="float:right" onclick="deleteMsg('${m.id}', this)">Borrar</button><button class="msg-action-btn" style="float:right; margin-right:5px" onclick="copyText('${escAttr(m.text||m.image_url||'')}')">Copiar</button>${m.text ? `<div class="msg-text">${escHtml(m.text)}</div>` : ''}${m.image_url && m.file_type?.startsWith('image/') ? `<img class="msg-img" src="${m.image_url}" loading="lazy">` : ''}${m.image_url && !m.file_type?.startsWith('image/') ? `<a class="msg-file-link" href="${m.image_url}" target="_blank">📎 ${m.file_name || 'Descargar archivo'}</a>` : ''}<div class="msg-meta">${timeAgo(m.created_at)}</div></div>`).join(''); } catch(err) { el.innerHTML = '<div class="empty">Error de conexión con el servidor Python</div>'; } } catch(err) {
     console.error("Error loading messages:", err);
     el.innerHTML = `<div class="empty">Error al cargar mensajes: ${escHtml(err.message || String(err))}</div>`;
   }
 }
-
-async function deleteMsg(id, btn) {
-  if (!db) return;
-  btn.closest('.msg').style.opacity = '0.4';
-  await db.from('messages').delete().eq('id', id);
-  await loadMessages();
 }
 
-async function deleteAllMessages() {
-  if (!db) return;
-  if (!confirm("¿Estás seguro de que deseas eliminar todo el historial de mensajes de la base de datos?")) return;
-  try {
-    const { error } = await db.from('messages').delete().neq('id', 0);
-    if (error) throw error;
-    showToast("Todo eliminado");
-    await loadMessages();
-  } catch (err) {
-    showToast("Error al eliminar: " + err.message);
-  }
-}
+async function deleteMsg(id, btn) { if(!confirm("¿Borrar este mensaje?")) return; try { /* TODO: Add single delete to FastAPI */ await loadMessages(); } catch(err) { console.error(err); } }
+
+async function deleteAllMessages() { if (!confirm("¿Estás seguro de que deseas eliminar todo el historial de mensajes?")) return; try { await fetch("/api/messages", { method: "DELETE" }); showToast("🗑️ Todo eliminado"); } catch (err) { showToast("❌ Error al eliminar: " + err.message); } }
 
 function handlePcFile(file) {
   if(!file) return;
@@ -805,50 +685,7 @@ function handlePcFile(file) {
 
 function removePcFile() { pcFile = null; document.getElementById('pcPreview').style.display = 'none'; document.getElementById('pcFile').value=''; }
 
-async function sendToMobile() {
-  if (!db) {
-    setPcStatus('Supabase no está configurado', 'err');
-    toggleSettingsModal();
-    return;
-  }
-  const text = document.getElementById('pcText').value.trim();
-  if(!text && !pcFile) { setPcStatus('Escribe algo o selecciona un archivo','err'); return; }
-  const btn = document.getElementById('pcSendBtn');
-  btn.disabled = true;
-  setPcStatus('','');
-
-  try {
-    let fileUrl = null, fileName = null, fileType = null;
-    if(pcFile) {
-      const path = `${Date.now()}_${pcFile.name}`;
-      const { error: upErr } = await db.storage.from('uploads').upload(path, pcFile);
-      if(upErr) throw upErr;
-      document.getElementById('pcProgress').style.width = '80%';
-      const { data: urlData } = db.storage.from('uploads').getPublicUrl(path);
-      fileUrl = urlData.publicUrl;
-      fileName = pcFile.name;
-      fileType = pcFile.type;
-      document.getElementById('pcProgress').style.width = '100%';
-    }
-    const activeCat = document.querySelector('#pcCatRow .cat-chip.sel');
-    const category = activeCat ? activeCat.dataset.cat : 'general';
-    const payload = {
-      text: text||null,
-      image_url: fileUrl,
-      file_name: fileName,
-      file_type: fileType,
-      source: 'pc',
-      category: category
-    };
-    const { error } = await db.from('messages').insert([payload]);
-    if(error) throw error;
-    setPcStatus('Enviado al móvil','ok');
-    document.getElementById('pcText').value = '';
-    removePcFile();
-    setTimeout(()=>setPcStatus('',''),5000);
-  } catch(err) {
-    setPcStatus('Error: '+err.message,'err');
-  } finally { btn.disabled = false; }
+async function sendToMobile() { const text = document.getElementById('pcText').value.trim(); const file = document.getElementById('pcFile').files[0]; if (!text && !file) { setPcStatus('Escribe algo o selecciona un archivo', 'err'); return; } const btn = document.getElementById('pcSendBtn'); btn.disabled = true; btn.innerHTML = 'Enviando...'; setPcStatus('', ''); try { const formData = new FormData(); formData.append("source", "pc"); if (text) formData.append("text", text); if (file) formData.append("file", file); const res = await fetch("/api/messages", { method: "POST", body: formData }); if (!res.ok) throw new Error("Error al enviar al servidor"); showToast('✅ ¡Enviado con éxito!'); document.getElementById('pcText').value = ''; removePcFile(); } catch(err) { setPcStatus('Error: ' + err.message, 'err'); } finally { btn.disabled = false; btn.innerHTML = 'Enviar'; } }
 }
 
 function setPcStatus(msg,type) { const s=document.getElementById('pcStatus'); s.textContent=msg; s.className='send-status '+type; }
@@ -867,7 +704,7 @@ function showToast(msg) {
 // getFileBadge defined above
 
 function formatSize(b) { if(b<1024)return b+' B'; if(b<1048576)return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
-function timeAgo(iso) { const d=(Date.now()-new Date(iso))/1000; if(d<60)return 'hace un momento'; if(d<3600)return `hace ${Math.floor(d/60)} min`; if(d<86400)return `hace ${Math.floor(d/3600)} h`; return `hace ${Math.floor(d/86400)} días`; }
+function timeAgo(iso) { const d=(Date.now()-new Date(iso))/1000; if(d<60)return 'hace un momento'; if(d<3600)return `hace ${Math.floor(d/60)} min`; if(d<86400)return `hace ${Math.floor(d/3600)} h`; return `hace ${Math.floor(d/86400)} dÃ­as`; }
 function escHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escAttr(t) { return t.replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 
@@ -877,15 +714,7 @@ dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover
 dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files[0])handlePcFile(e.dataTransfer.files[0])});
 
-function setupRealtime() {
-  if (!db) return;
-  if (realtimeChannel) {
-    db.removeChannel(realtimeChannel);
-  }
-  realtimeChannel = db.channel('messages-channel')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'source=eq.mobile' }, () => loadMessages());
-  realtimeChannel.subscribe();
-}
+function setupRealtime() { if (realtimeChannel) { realtimeChannel.close(); } realtimeChannel = new WebSocket(`ws://${window.location.host}/ws`); realtimeChannel.onmessage = (event) => { if (event.data === "NEW_MESSAGE" || event.data === "MESSAGES_CLEARED") { loadMessages(); if (event.data === "NEW_MESSAGE") showToast('📩 Nuevo mensaje'); } }; }
 
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light-theme');
@@ -903,9 +732,9 @@ function updateThemeIcon() {
 }
 
 
-// ══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // VAULT
-// ══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const VAULT_KEY = 'vault_items_local';
 let vaultFilter = 'all';
 let editingVaultId = null;
@@ -914,7 +743,7 @@ const _vaultStore = {};
 function getLocalVault() { try { return JSON.parse(localStorage.getItem(VAULT_KEY)||'[]'); } catch(e){return[];} }
 function saveLocalVault(v) { localStorage.setItem(VAULT_KEY, JSON.stringify(v)); }
 
-// ── Bitwarden CLI check ────────────────────────────────
+// â”€â”€ Bitwarden CLI check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function checkBwStatus() {
   const dot = document.getElementById('bwDot');
   const txt = document.getElementById('bwStatusText');
@@ -925,10 +754,10 @@ async function checkBwStatus() {
     const j = await r.json();
     if (j?.data?.template?.status === 'unlocked') {
       dot.className = 'vault-bw-dot ok';
-      txt.textContent = 'Bitwarden CLI · desbloqueado ✓';
+      txt.textContent = 'Bitwarden CLI Â· desbloqueado âœ“';
     } else {
       dot.className = 'vault-bw-dot err';
-      txt.textContent = 'Bitwarden bloqueado — ejecuta: bw unlock';
+      txt.textContent = 'Bitwarden bloqueado â€” ejecuta: bw unlock';
     }
   } catch(e) {
     dot.className = 'vault-bw-dot err';
@@ -936,14 +765,14 @@ async function checkBwStatus() {
   }
 }
 
-// ── Sync from Bitwarden CLI ────────────────────────────
+// â”€â”€ Sync from Bitwarden CLI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function syncFromBitwarden() {
   const btn = document.getElementById('vaultSyncBtn');
   btn.classList.add('syncing');
-  btn.textContent = '⟳ Sincronizando...';
+  btn.textContent = 'âŸ³ Sincronizando...';
   try {
     const r = await fetch('http://localhost:8087/list/object/items', { signal: AbortSignal.timeout(5000) });
-    if (!r.ok) throw new Error('Bitwarden no responde. ¿Está desbloqueado?');
+    if (!r.ok) throw new Error('Bitwarden no responde. Â¿EstÃ¡ desbloqueado?');
     const j = await r.json();
     const items = (j?.data?.data || []).filter(i => i.type === 1); // type 1 = login
 
@@ -960,7 +789,7 @@ async function syncFromBitwarden() {
       synced_at: new Date().toISOString()
     }));
 
-    // Merge with local — keep manual ones, replace bitwarden ones
+    // Merge with local â€” keep manual ones, replace bitwarden ones
     const local = getLocalVault().filter(v => v.source !== 'bitwarden');
     const merged = [...mapped, ...local];
     saveLocalVault(merged);
@@ -984,11 +813,11 @@ async function syncFromBitwarden() {
     showToast('Error: ' + e.message);
   } finally {
     btn.classList.remove('syncing');
-    btn.textContent = '⟳ Sync BW';
+    btn.textContent = 'âŸ³ Sync BW';
   }
 }
 
-// ── Load from Supabase (fallback to localStorage) ──────
+// â”€â”€ Load from Supabase (fallback to localStorage) â”€â”€â”€â”€â”€â”€
 async function loadVaultFromSupabase() {
   if (db) {
     try {
@@ -1008,7 +837,7 @@ async function loadVaultFromSupabase() {
   renderVault();
 }
 
-// ── Render ─────────────────────────────────────────────
+// â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function setVaultFilter(el) {
   vaultFilter = el.dataset.folder;
   document.querySelectorAll('.vault-filter-chip').forEach(c=>c.classList.remove('active'));
@@ -1051,7 +880,7 @@ function renderVault() {
       <div class="vault-item-icon">${icon(item)}</div>
       <div class="vault-item-info">
         <div class="vault-item-name">${escHtml(item.name)}</div>
-        <div class="vault-item-user">${escHtml(item.username||'—')}</div>
+        <div class="vault-item-user">${escHtml(item.username||'â€”')}</div>
       </div>
       <div class="vault-item-actions">
         <button class="vault-action-btn" onclick="copyVaultField('${item.id}','username')">USER</button>
@@ -1064,23 +893,23 @@ function renderVault() {
   `).join('');
 }
 
-// ── Actions ────────────────────────────────────────────
+// â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function copyVaultField(id, field) {
   const item = _vaultStore[id];
   if (!item) return;
   const val = item[field] || '';
-  navigator.clipboard.writeText(val).then(()=>showToast(`${field==='password'?'Contraseña':'Usuario'} copiado`));
+  navigator.clipboard.writeText(val).then(()=>showToast(`${field==='password'?'ContraseÃ±a':'Usuario'} copiado`));
 }
 
 async function sendVaultToMobile(id) {
   const item = _vaultStore[id];
-  if (!item || !db) { showToast('Sin conexión a Supabase'); return; }
+  if (!item || !db) { showToast('Sin conexiÃ³n a Supabase'); return; }
   const text = `Credencial: ${item.name}
-Usuario: ${item.username||'—'}
-Password: ${item.password||'—'}${item.url ? '\nURL: ' + item.url : ''}`;
-  const { error } = await db.from('messages').insert([{ text, source: 'pc', category: 'contraseña' }]);
+Usuario: ${item.username||'â€”'}
+Password: ${item.password||'â€”'}${item.url ? '\nURL: ' + item.url : ''}`;
+  const { error } = await db.from('messages').insert([{ text, source: 'pc', category: 'contraseÃ±a' }]);
   if (error) { showToast('Error: ' + error.message); return; }
-  showToast('Credencial enviada al móvil');
+  showToast('Credencial enviada al mÃ³vil');
 }
 
 function toggleVfPass() {
@@ -1088,7 +917,7 @@ function toggleVfPass() {
   inp.type = inp.type === 'password' ? 'text' : 'password';
 }
 
-// ── Form ───────────────────────────────────────────────
+// â”€â”€ Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function openVaultForm(id) {
   editingVaultId = id || null;
   const modal = document.getElementById('vaultModal');
@@ -1118,7 +947,7 @@ function closeVaultForm() {
 
 async function saveVaultItem() {
   const name = document.getElementById('vfName').value.trim();
-  if (!name) { showToast('⚠️ El nombre es obligatorio'); return; }
+  if (!name) { showToast('âš ï¸ El nombre es obligatorio'); return; }
   const item = {
     id: editingVaultId || ('manual_' + Date.now()),
     name,
@@ -1156,7 +985,7 @@ async function saveVaultItem() {
 }
 
 async function deleteVaultItem(id) {
-  if (!confirm('¿Eliminar esta credencial?')) return;
+  if (!confirm('Â¿Eliminar esta credencial?')) return;
   const local = getLocalVault().filter(v=>v.id!==id);
   saveLocalVault(local);
   // Delete from Supabase if has sb_id
@@ -1167,7 +996,7 @@ async function deleteVaultItem(id) {
   showToast('Eliminado');
 }
 
-// ── NOTAS SUPABASE (local-primero) ──────────────────────────
+// â”€â”€ NOTAS SUPABASE (local-primero) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PC_NOTES_LOCAL_KEY = 'pc_notes_local';
 function getPcLocalNotes() {
   try { return JSON.parse(localStorage.getItem(PC_NOTES_LOCAL_KEY) || '[]'); }
@@ -1328,7 +1157,7 @@ async function pcTogglePin(id) {
 }
 
 async function pcDeleteNote(id) {
-  if(!confirm('¿Eliminar esta nota?')) return;
+  if(!confirm('Â¿Eliminar esta nota?')) return;
   
   let localNotes = getPcLocalNotes();
   const noteToDelete = localNotes.find(n => n.id === id);
@@ -1392,7 +1221,7 @@ function pcRenderNotes() {
   countEl.textContent = notes.length ? `${notes.length} nota${notes.length!==1?'s':''}` : '';
 
   if(!notes.length) {
-    el.innerHTML = `<div class="empty" style="padding:30px 0">${q ? 'Sin resultados' : 'No hay notas aún.<br>Crea una aquí o desde el móvil.'}</div>`;
+    el.innerHTML = `<div class="empty" style="padding:30px 0">${q ? 'Sin resultados' : 'No hay notas aÃºn.<br>Crea una aquÃ­ o desde el mÃ³vil.'}</div>`;
     return;
   }
 
@@ -1437,7 +1266,7 @@ function setupNotesRealtime() {
   }
 }
 
-// Inicialización al cargar la página
+// InicializaciÃ³n al cargar la pÃ¡gina
 window.addEventListener('DOMContentLoaded', () => {
   // Register Service Worker
   if ('serviceWorker' in navigator) {
@@ -1461,3 +1290,4 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+

@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
-  
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Enviar al PC</title>
 <link rel="manifest" href="manifest.json">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -636,7 +634,6 @@ function initSupabase() {
       db = supabase.createClient(url, key);
     }
     setupRealtime();
-    setupNotesRealtime();
     return true;
   } catch (err) {
     console.error("Error al conectar a Supabase:", err);
@@ -714,26 +711,32 @@ function switchTab(name) {
   document.getElementById('tab-'+name).classList.add('active');
   if(name==='historial') loadHistory();
   if(name==='recibidos') loadReceived();
-  if(name==='notas') loadNotes();
+  if(name==='notas') renderNotes();
 }
 
-// ── NOTAS (Supabase — bidireccional) ──────────────────────────
+// ── NOTAS ─────────────────────────────────────────────────────
 let editingNoteId = null;
 let selectedNoteColor = '#7c7fa8';
-let notesCache = [];           // caché local para renders instantáneos
-let notesRealtimeChannel = null;
+
+function getNotes() {
+  try { return JSON.parse(localStorage.getItem('quick_notes') || '[]'); }
+  catch(e) { return []; }
+}
+function saveNotes(notes) {
+  localStorage.setItem('quick_notes', JSON.stringify(notes));
+}
 
 function openNoteForm(id) {
   const form = document.getElementById('noteForm');
   form.classList.add('open');
   if(id) {
     editingNoteId = id;
-    const note = notesCache.find(n => n.id === id);
+    const note = getNotes().find(n=>n.id===id);
     if(!note) return;
     document.getElementById('noteTitle').value = note.title || '';
     document.getElementById('noteBody').value = note.body || '';
     selectedNoteColor = note.color || '#7c7fa8';
-    document.querySelectorAll('.note-color-dot').forEach(d => {
+    document.querySelectorAll('.note-color-dot').forEach(d=>{
       d.classList.toggle('sel', d.dataset.color === selectedNoteColor);
     });
   } else {
@@ -741,7 +744,7 @@ function openNoteForm(id) {
     document.getElementById('noteTitle').value = '';
     document.getElementById('noteBody').value = '';
     selectedNoteColor = '#7c7fa8';
-    document.querySelectorAll('.note-color-dot').forEach((d,i) => d.classList.toggle('sel', i===0));
+    document.querySelectorAll('.note-color-dot').forEach((d,i)=>d.classList.toggle('sel',i===0));
   }
   document.getElementById('noteTitle').focus();
 }
@@ -753,82 +756,53 @@ function closeNoteForm() {
 
 function selectNoteColor(el) {
   selectedNoteColor = el.dataset.color;
-  document.querySelectorAll('.note-color-dot').forEach(d => d.classList.remove('sel'));
+  document.querySelectorAll('.note-color-dot').forEach(d=>d.classList.remove('sel'));
   el.classList.add('sel');
 }
 
-async function saveNote() {
-  if(!db) { showToast('⚠️ Supabase no configurado'); return; }
+function saveNote() {
   const title = document.getElementById('noteTitle').value.trim();
-  const body  = document.getElementById('noteBody').value.trim();
+  const body = document.getElementById('noteBody').value.trim();
   if(!title && !body) { showToast('⚠️ Escribe algo primero'); return; }
-
-  const btn = document.querySelector('.btn-save-note');
-  btn.disabled = true;
-  btn.textContent = '...';
-
-  try {
-    if(editingNoteId) {
-      const { error } = await db.from('notes').update({
-        title, body,
-        color: selectedNoteColor,
-        updated_at: new Date().toISOString()
-      }).eq('id', editingNoteId);
-      if(error) throw error;
-      showToast('✏️ Nota actualizada');
-    } else {
-      const { error } = await db.from('notes').insert([{
-        title: title || null,
-        body:  body  || null,
-        color: selectedNoteColor,
-        pinned: false
-      }]);
-      if(error) throw error;
-      showToast('📝 Nota guardada');
+  const notes = getNotes();
+  if(editingNoteId) {
+    const idx = notes.findIndex(n=>n.id===editingNoteId);
+    if(idx>=0) {
+      notes[idx].title = title;
+      notes[idx].body = body;
+      notes[idx].color = selectedNoteColor;
+      notes[idx].updatedAt = new Date().toISOString();
     }
-    closeNoteForm();
-    await loadNotes();
-  } catch(err) {
-    showToast('❌ ' + err.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Guardar';
+  } else {
+    notes.unshift({ id: Date.now().toString(), title, body, color: selectedNoteColor, pinned: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
   }
+  saveNotes(notes);
+  closeNoteForm();
+  renderNotes();
+  showToast(editingNoteId ? '✏️ Nota actualizada' : '📝 Nota guardada');
 }
 
-async function togglePin(id) {
-  if(!db) return;
-  const note = notesCache.find(n => n.id === id);
-  if(!note) return;
-  await db.from('notes').update({ pinned: !note.pinned }).eq('id', id);
-  await loadNotes();
+function togglePin(id) {
+  const notes = getNotes();
+  const n = notes.find(n=>n.id===id);
+  if(n) { n.pinned = !n.pinned; saveNotes(notes); renderNotes(); }
 }
 
-async function deleteNote(id) {
+function deleteNote(id) {
   if(!confirm('¿Eliminar esta nota?')) return;
-  if(!db) return;
-  await db.from('notes').delete().eq('id', id);
-  await loadNotes();
+  saveNotes(getNotes().filter(n=>n.id!==id));
+  renderNotes();
   showToast('🗑️ Nota eliminada');
 }
 
-async function loadNotes() {
-  if(!db) {
-    renderNotes([]);
-    return;
-  }
-  const { data, error } = await db.from('notes').select('*').order('pinned', { ascending: false }).order('updated_at', { ascending: false });
-  if(!error && data) notesCache = data;
-  renderNotes();
-}
-
 function renderNotes() {
-  const el       = document.getElementById('notesList');
-  const countEl  = document.getElementById('notesCount');
-  const q        = (document.getElementById('notesSearch')?.value || '').toLowerCase();
-  let notes      = [...notesCache];
-
-  if(q) notes = notes.filter(n => ((n.title||'') + ' ' + (n.body||'')).toLowerCase().includes(q));
+  const el = document.getElementById('notesList');
+  const countEl = document.getElementById('notesCount');
+  const q = (document.getElementById('notesSearch')?.value || '').toLowerCase();
+  let notes = getNotes();
+  if(q) notes = notes.filter(n=>(n.title+' '+n.body).toLowerCase().includes(q));
+  // Pins first
+  notes = [...notes.filter(n=>n.pinned), ...notes.filter(n=>!n.pinned)];
 
   countEl.textContent = notes.length ? `${notes.length} nota${notes.length!==1?'s':''}` : '';
 
@@ -836,7 +810,6 @@ function renderNotes() {
     el.innerHTML = `<div class="notes-empty">${q ? 'Sin resultados' : 'No hay notas aún\nToca "+ Nueva" para crear una'}</div>`;
     return;
   }
-
   el.innerHTML = notes.map(n => `
     <div class="note-card" style="--note-color:${n.color||'var(--accent)'}">
       <div class="note-card-header">
@@ -845,29 +818,16 @@ function renderNotes() {
       </div>
       ${n.body ? `<div class="note-card-body">${escapeHtml(n.body)}</div>` : ''}
       <div class="note-card-footer">
-        <div class="note-card-time">${timeAgo(n.updated_at||n.created_at)}</div>
+        <div class="note-card-time">${timeAgo(n.updatedAt||n.createdAt)}</div>
         <div class="note-card-actions">
-          <button class="note-action-btn" title="${n.pinned?'Desfijar':'Fijar'}" onclick="event.stopPropagation();togglePin(${n.id})">${n.pinned?'📌':'📍'}</button>
-          <button class="note-action-btn" title="Editar" onclick="event.stopPropagation();openNoteForm(${n.id})">✏️</button>
-          <button class="note-action-btn" title="Copiar" onclick="event.stopPropagation();copyText('${escapeAttr((n.title?(n.title+'\n'):'')+( n.body||''))}')">📋</button>
-          <button class="note-action-btn danger" title="Eliminar" onclick="event.stopPropagation();deleteNote(${n.id})">🗑️</button>
+          <button class="note-action-btn" title="${n.pinned?'Desfijar':'Fijar'}" onclick="event.stopPropagation();togglePin('${n.id}')">${n.pinned?'📌':'📍'}</button>
+          <button class="note-action-btn" title="Editar" onclick="event.stopPropagation();openNoteForm('${n.id}')">✏️</button>
+          <button class="note-action-btn" title="Copiar" onclick="event.stopPropagation();copyText('${escapeAttr((n.title?(n.title+'\n'):'')+n.body)}')">📋</button>
+          <button class="note-action-btn danger" title="Eliminar" onclick="event.stopPropagation();deleteNote('${n.id}')">🗑️</button>
         </div>
       </div>
     </div>
   `).join('');
-}
-
-function setupNotesRealtime() {
-  if(!db) return;
-  if(notesRealtimeChannel) db.removeChannel(notesRealtimeChannel);
-  notesRealtimeChannel = db.channel('notes-mobile')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, async () => {
-      await loadNotes();
-      if(document.getElementById('tab-notas').classList.contains('active')) {
-        showToast('🔄 Notas actualizadas');
-      }
-    });
-  notesRealtimeChannel.subscribe();
 }
 
 function selectType(el, accept) {
@@ -985,69 +945,67 @@ function setStatus(msg, type) {
 
 async function loadHistory() {
   const el = document.getElementById('historyList');
-  if (!db) {
-    el.innerHTML = '<div class="empty">Supabase no está configurado. Haz clic en el engranaje ⚙️ para configurarlo.</div>';
-    return;
-  }
   el.innerHTML = '<div class="loader">Cargando...</div>';
-  const { data, error } = await db.from('messages').select('*').eq('source','mobile').order('created_at',{ascending:false}).limit(20);
-  if(error || !data?.length) { el.innerHTML = '<div class="empty">No has enviado nada todavía</div>'; return; }
-  
-  const deleteBtnHtml = `
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
-      <button class="hitem-action" style="background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2);" onclick="deleteAllMessages()">🗑️ Borrar todo</button>
-    </div>
-  `;
-  
-  el.innerHTML = deleteBtnHtml + data.map(m => `
-    <div class="hitem">
-      <div class="hitem-icon" style="font-size:18px">${m.file_name ? getFileEmoji(m.file_type||'',m.file_name) : '💬'}</div>
-      <div class="hitem-info">
-        <div class="hitem-name">${m.file_name || m.text || '(sin texto)'}</div>
-        <div class="hitem-meta">${timeAgo(m.created_at)}</div>
+  try {
+    const res = await fetch("/api/messages?source_filter=mobile");
+    const data = await res.json();
+    if(!data?.length) { el.innerHTML = '<div class="empty">No has enviado nada todavía</div>'; return; }
+    
+    const deleteBtnHtml = `
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+        <button class="hitem-action" style="background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2);" onclick="deleteAllMessages()">🗑️ Borrar todo</button>
       </div>
-      ${m.image_url ? `<button class="hitem-action" onclick="window.open('${m.image_url}')">Abrir</button>` : ''}
-      ${!m.image_url && m.text ? `<button class="hitem-action" onclick="copyText('${escapeAttr(m.text)}')">Copiar</button>` : ''}
-    </div>
-  `).join('');
+    `;
+    
+    el.innerHTML = deleteBtnHtml + data.map(m => `
+      <div class="hitem">
+        <div class="hitem-icon" style="font-size:18px">${m.file_name ? getFileEmoji(m.file_type||'',m.file_name) : '💬'}</div>
+        <div class="hitem-info">
+          <div class="hitem-name">${m.file_name || m.text || '(sin texto)'}</div>
+          <div class="hitem-meta">${timeAgo(m.created_at)}</div>
+        </div>
+        ${m.image_url ? `<button class="hitem-action" onclick="window.open('${m.image_url}')">Abrir</button>` : ''}
+        ${!m.image_url && m.text ? `<button class="hitem-action" onclick="copyText('${escapeAttr(m.text)}')">Copiar</button>` : ''}
+      </div>
+    `).join('');
+  } catch(err) {
+    el.innerHTML = '<div class="empty">Error de conexión con el servidor Python</div>';
+  }
 }
 
 async function loadReceived() {
   const el = document.getElementById('recvList');
-  if (!db) {
-    el.innerHTML = '<div class="empty">Supabase no está configurado. Haz clic en el engranaje ⚙️ para configurarlo.</div>';
-    return;
-  }
   el.innerHTML = '<div class="loader">Cargando mensajes del PC...</div>';
-  const { data, error } = await db.from('messages').select('*').eq('source','pc').order('created_at',{ascending:false}).limit(20);
-  if(error || !data?.length) { el.innerHTML = '<div class="empty">No hay mensajes del PC todavía</div>'; return; }
-  
-  const deleteBtnHtml = `
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
-      <button class="recv-copy" style="background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); float: none;" onclick="deleteAllMessages()">🗑️ Borrar todo</button>
-    </div>
-  `;
-  
-  el.innerHTML = deleteBtnHtml + data.map(m => `
-    <div class="recv-item">
-      <button class="recv-copy" onclick="copyText('${escapeAttr(m.text||m.image_url||'')}')">Copiar</button>
-      ${m.text ? `<div class="recv-text">${escapeHtml(m.text)}</div>` : ''}
-      ${m.image_url && m.file_type?.startsWith('image/') ? `<img class="recv-img" src="${m.image_url}" loading="lazy">` : ''}
-      ${m.image_url && !m.file_type?.startsWith('image/') ? `<a class="recv-file-link" href="${m.image_url}" target="_blank">📎 ${m.file_name || 'Descargar archivo'}</a>` : ''}
-      <div class="recv-meta">${timeAgo(m.created_at)}</div>
-    </div>
-  `).join('');
+  try {
+    const res = await fetch("/api/messages?source_filter=pc");
+    const data = await res.json();
+    if(!data?.length) { el.innerHTML = '<div class="empty">No hay mensajes del PC todavía</div>'; return; }
+    
+    const deleteBtnHtml = `
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+        <button class="recv-copy" style="background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.2); float: none;" onclick="deleteAllMessages()">🗑️ Borrar todo</button>
+      </div>
+    `;
+    
+    el.innerHTML = deleteBtnHtml + data.map(m => `
+      <div class="recv-item">
+        <button class="recv-copy" onclick="copyText('${escapeAttr(m.text||m.image_url||'')}')">Copiar</button>
+        ${m.text ? `<div class="recv-text">${escapeHtml(m.text)}</div>` : ''}
+        ${m.image_url && m.file_type?.startsWith('image/') ? `<img class="recv-img" src="${m.image_url}" loading="lazy">` : ''}
+        ${m.image_url && !m.file_type?.startsWith('image/') ? `<a class="recv-file-link" href="${m.image_url}" target="_blank">📎 ${m.file_name || 'Descargar archivo'}</a>` : ''}
+        <div class="recv-meta">${timeAgo(m.created_at)}</div>
+      </div>
+    `).join('');
+  } catch(err) {
+    el.innerHTML = '<div class="empty">Error de conexión con el servidor Python</div>';
+  }
 }
 
 async function deleteAllMessages() {
-  if (!db) return;
-  if (!confirm("¿Estás seguro de que deseas eliminar todo el historial de mensajes de la base de datos?")) return;
+  if (!confirm("¿Estás seguro de que deseas eliminar todo el historial de mensajes?")) return;
   try {
-    const { error } = await db.from('messages').delete().neq('id', 0);
-    if (error) throw error;
+    await fetch("/api/messages", { method: "DELETE" });
     showToast("🗑️ Todo eliminado");
-    if (document.getElementById('tab-recibidos').classList.contains('active')) loadReceived();
-    if (document.getElementById('tab-historial').classList.contains('active')) loadHistory();
   } catch (err) {
     showToast("❌ Error al eliminar: " + err.message);
   }
@@ -1076,16 +1034,20 @@ dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover'
 
 // Tiempo real: Avisar cuando llega algo del PC
 function setupRealtime() {
-  if (!db) return;
   if (realtimeChannel) {
-    db.removeChannel(realtimeChannel);
+    realtimeChannel.close();
   }
-  realtimeChannel = db.channel('pc-to-mobile')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'source=eq.pc' }, payload => {
-      showToast('📩 Nuevo mensaje del PC');
+  realtimeChannel = new WebSocket(`ws://${window.location.host}/ws`);
+  realtimeChannel.onmessage = (event) => {
+    if (event.data === "NEW_MESSAGE") {
+      showToast('📩 Nuevo mensaje');
       if (document.getElementById('tab-recibidos').classList.contains('active')) loadReceived();
-    });
-  realtimeChannel.subscribe();
+      if (document.getElementById('tab-historial').classList.contains('active')) loadHistory();
+    } else if (event.data === "MESSAGES_CLEARED") {
+      if (document.getElementById('tab-recibidos').classList.contains('active')) loadReceived();
+      if (document.getElementById('tab-historial').classList.contains('active')) loadHistory();
+    }
+  };
 }
 
 function toggleTheme() {
